@@ -59,6 +59,6 @@ After the first deploy, change the two `og:image` / `twitter:image` tags in `ind
 | `og.jpg` | 1200×630 link preview |
 | `icons/mark.svg` | The String mark without its background tile |
 
-The mark is a closed string vibrating in its fifth harmonic, drawn in the Planck palette.
+The mark is an open string stretched between two D-branes, vibrating in its second harmonic, with its endpoints fixed on the branes. It is drawn in the Planck palette.
 
 Built with [three.js](https://threejs.org), loaded from the jsDelivr CDN.
