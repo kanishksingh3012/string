@@ -14,9 +14,11 @@
 - Harmonics equalizer: drag the 8 bars to set each vibration mode. Each bar plays its overtone as a plucked string.
 - Surface styles: Silk, Film (iridescent), Grid (worldsheet coordinates) and Plasma.
 - Palettes, bloom, aberration, grain, vignette, pixelation and dithering.
+- **String Radio**: a generative ambient soundtrack built from the harmonic series. Slow drones, plucked strings and bells, synthesized live in the browser. It follows the scene's key, and the Harmonics bars shape its tone. Toggle it with the bars icon or **B**.
 - Light and dark mode, with synthesized interface sounds (mute with **M**).
 - Adaptive resolution that keeps the frame rate smooth on slower machines.
-- PNG export, 6-second video recording, saved presets and settings as JSON.
+- PNG export in three sizes: **Screen**, **4K**, or **Max**, the largest your GPU can render safely (about 6000 px wide on a laptop). Bloom, grain and grid lines are scaled so the file matches what you see on screen.
+- 6-second video recording, saved presets and settings as JSON.
 
 ## Shortcuts
 
@@ -30,6 +32,7 @@
 | V | Record 6 seconds |
 | X | Reset view |
 | T | Toggle theme |
+| B | Toggle String Radio |
 | M | Toggle sound |
 | H | Show / hide panel |
 
