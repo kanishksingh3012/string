@@ -663,6 +663,24 @@ float fbm(vec2 p){
 }
 `;
 
+const CLOSED_GLSL = /* glsl */`
+// Closed string X(sigma, tau) with exact tangents dX/dsigma and dX/dtau (left- and right-movers).
+void closed(float sig, float tau, out vec3 X, out vec3 dS, out vec3 dT){
+  vec3 rad = vec3(cos(sig), 0.0, sin(sig)), drad = vec3(-sin(sig), 0.0, cos(sig));
+  X = rad*uRadius; dS = drad*uRadius; dT = vec3(0.0);
+  for(int i=0;i<8;i++){
+    if(uAmp[i] <= 0.0) continue;
+    float n = float(i+1);
+    float a = uAmp[i]*uAmpScale*inversesqrt(n)*0.55;
+    float aL = n*(sig - tau) + uPhase[i], aR = n*(sig + tau) + uPhase[i]*1.73 + 1.1;
+    float L = cos(aL), R = cos(aR), sL = sin(aL), sR = sin(aR);
+    X  += a*(vec3(0.0, L, 0.0) + rad*R*0.7);
+    dS += a*(vec3(0.0, -n*sL, 0.0) + drad*R*0.7 - rad*n*sR*0.7);
+    dT += a*(vec3(0.0, n*sL, 0.0) - rad*n*sR*0.7);
+  }
+}
+`;
+
 const VERT = /* glsl */`
 uniform float uTau, uTrail, uSpread, uRadius, uAmpScale, uFade, uHeight;
 uniform float uAmp[8];
@@ -679,6 +697,7 @@ varying vec3 vPos;
 ${GLSL_COMMON}
 
 vec2 cmul(vec2 a, vec2 b){ return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
+${CLOSED_GLSL}
 vec2 cpow(vec2 w, float p){ float r = length(w); if(r < 1e-5) return vec2(0.0); float a = atan(w.y, w.x); return pow(r, p)*vec2(cos(p*a), sin(p*a)); }
 
 vec3 surf(vec2 uv){
@@ -772,6 +791,14 @@ vec3 surf(vec2 uv){
 
 void main(){
   vec2 st = uv;
+#if SCENE == 0
+  // Exact worldsheet tangents from the mode sum: no extra evaluations and no noise.
+  vec3 X, dS, dT;
+  closed(st.x*TAU, uTau - (1.0 - st.y)*uTrail, X, dS, dT);
+  vec3 p = (X + vec3(0.0, (st.y - 0.5)*uSpread*uHeight, 0.0))*uScale;
+  vec3 dx = dS*TAU*uScale;
+  vec3 dy = (dT*uTrail + vec3(0.0, uSpread*uHeight, 0.0))*uScale;
+#else
   vec3 p = surf(st);
   // One-sided differences that step into the patch: 3 surface evaluations instead of 5,
   // and never across a patch edge or branch cut.
@@ -779,6 +806,7 @@ void main(){
   float ex = st.x + e <= 1.0 ? e : -e, ey = st.y + e <= 1.0 ? e : -e;
   vec3 dx = (surf(st + vec2(ex, 0.0)) - p)/ex;
   vec3 dy = (surf(st + vec2(0.0, ey)) - p)/ey;
+#endif
   vec3 Vw = cameraPosition - p;
   vec3 n = cross(dx, dy);
   if(dot(n, n) < 1e-8){
@@ -795,7 +823,7 @@ void main(){
   float a = 1.0;
 #if SCENE == 0 || SCENE == 1
   a = pow(st.y, uFade)*smoothstep(0.0, 0.03, st.y);
-  vT = st.y;
+  vT = SCENE == 1 ? st.y : 0.0;   // the closed string's present moment is drawn as its own tube
 #endif
 #if SCENE == 2
   if(uTopo < 0.5){
@@ -999,7 +1027,7 @@ const U = {
   uC0: { value: new THREE.Color() }, uC1: { value: new THREE.Color() }, uC2: { value: new THREE.Color() },
   uC3: { value: new THREE.Color() }, uC4: { value: new THREE.Color() },
   uStyle: { value: 0 }, uStreaks: { value: .6 }, uDensity: { value: 160 }, uGlow: { value: 1.2 }, uIrid: { value: 1 },
-  uAccent: { value: .6 }, uOpacity: { value: .6 }, uInk: { value: 0 }, uHead: { value: 1.4 }, uGridN: { value: 28 }, uNorm: { value: 1 }, uPxScale: { value: 1 },
+  uAccent: { value: .6 }, uOpacity: { value: .6 }, uInk: { value: 0 }, uHead: { value: 1.4 }, uGridN: { value: 28 }, uNorm: { value: 1 }, uPxScale: { value: 1 }, uTubeR: { value: 0.022 },
 };
 
 function gridGeometry(Useg, Vseg, maxInst) {
@@ -1031,7 +1059,7 @@ function applyBlend(m, ink) {
 }
 
 const GEO = [
-  gridGeometry(isSmall ? 280 : 440, isSmall ? 72 : 110, 1),
+  gridGeometry(isSmall ? 280 : 440, isSmall ? 96 : 160, 1),
   gridGeometry(2, 2, 1),
   gridGeometry(isSmall ? 240 : 380, isSmall ? 120 : 190, 1),
   gridGeometry(isSmall ? 44 : 76, isSmall ? 44 : 76, 49),
@@ -1048,6 +1076,54 @@ const meshes = GEO.map((g, i) => {
   scene.add(mesh);
   return mesh;
 });
+
+
+// The string itself, right now: a thin glowing tube along X(sigma, tau_now) with a bright core.
+const TUBE_VERT = /* glsl */`
+uniform float uTau, uRadius, uAmpScale, uSpread, uHeight, uScale, uTubeR;
+uniform float uAmp[8];
+uniform float uPhase[8];
+varying vec3 vN;
+varying vec3 vV;
+varying float vS;
+#define TAU 6.28318530718
+${CLOSED_GLSL}
+void main(){
+  vec3 X, dS, dT;
+  closed(uv.x*TAU, uTau, X, dS, dT);
+  X.y += 0.5*uSpread*uHeight;
+  vec3 T = normalize(dS + 1e-6);
+  vec3 N = normalize(cross(T, vec3(0.0, 1.0, 0.0)) + vec3(1e-4, 0.0, 0.0));
+  vec3 B = cross(T, N);
+  float ph = uv.y*TAU;
+  vec3 nrm = cos(ph)*N + sin(ph)*B;
+  vec3 P = X*uScale + nrm*uTubeR;
+  vN = nrm; vV = cameraPosition - P; vS = uv.x;
+  gl_Position = projectionMatrix*viewMatrix*vec4(P, 1.0);
+}`;
+const TUBE_FRAG = /* glsl */`
+uniform vec3 uC0, uC1, uC2;
+uniform float uHead, uOpacity, uInk, uTimeF, uAccent;
+varying vec3 vN;
+varying vec3 vV;
+varying float vS;
+void main(){
+  vec3 N = vN*inversesqrt(max(dot(vN, vN), 1e-12));
+  vec3 V = vV*inversesqrt(max(dot(vV, vV), 1e-12));
+  float core = pow(clamp(abs(dot(N, V)), 0.0, 1.0), 3.0);
+  float shimmer = 0.8 + 0.2*sin(vS*18.8496 + uTimeF*1.3);
+  vec3 col = mix(uC1, vec3(1.0), core*0.7);
+  col = mix(col, uC2, (1.0 - core)*0.5*uAccent);
+  float I = uHead*(0.05 + 0.5*core)*shimmer*uOpacity;
+  vec3 o = uInk > 0.5 ? (1.0 - mix(uC0, uC1, 0.25))*I*0.9 : col*I;
+  gl_FragColor = vec4(clamp(o, vec3(0.0), vec3(32.0)), 1.0);
+}`;
+const tubeMat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: TUBE_VERT, fragmentShader: TUBE_FRAG, transparent: true, depthWrite: false, depthTest: false, side: THREE.DoubleSide });
+applyBlend(tubeMat, false);
+const tube = new THREE.Mesh(gridGeometry(isSmall ? 320 : 640, 10, 1), tubeMat);
+tube.frustumCulled = false;
+tube.renderOrder = 1;
+scene.add(tube);
 
 const braneMats = [-1, 1].map(side => {
   const m = new THREE.ShaderMaterial({
@@ -1136,13 +1212,14 @@ function syncUniforms() {
   U.uStyle.value = S.style; U.uStreaks.value = S.streaks; U.uDensity.value = S.density; U.uGlow.value = S.glow;
   U.uIrid.value = S.irid; U.uAccent.value = S.accent; U.uOpacity.value = S.opacity; U.uInk.value = ink ? 1 : 0;
   U.uHead.value = S.head; U.uGridN.value = S.gridN;
-  const norms = [0.3 + 0.75 * S.spread, 0.42, 0.95, 0.34];
+  const norms = [0.46 * (110 / GEO[0].userData.V) * (1 - S.spread) + 1.05 * S.spread, 0.42, 0.95, 0.34];
   const inkBoost = [3.4, 2.2, 1.8, 1.6];
   U.uNorm.value = norms[S.scene] * (ink ? inkBoost[S.scene] : 1) * (S.scene === 3 ? 5 / S.cyN : 1);
 
   const keep = quality < 0.75 && S.quality !== 'sharp' ? 0.6 : 1;
   GEO[0].setDrawRange(Math.floor((1 - keep) * GEO[0].userData.V) * GEO[0].userData.U * 6, Infinity);
   GEO[3].instanceCount = S.cyN * S.cyN;
+  tube.visible = S.scene === 0 && S.head > 0;
   branes.forEach((b, i) => {
     b.visible = S.scene === 1 && S.showBranes;
     b.position.set((i ? 1 : -1) * S.gap * 0.5 * S.scale, 0, 0);
@@ -1162,6 +1239,7 @@ function setBlendAll() {
   const ink = theme === 'light';
   meshes.forEach(m => applyBlend(m.material, ink));
   braneMats.forEach(m => applyBlend(m, ink));
+  applyBlend(tubeMat, ink);
 }
 
 /* ================================================================== adaptive resolution */
