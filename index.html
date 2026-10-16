@@ -1165,9 +1165,9 @@ scene.add(tube);
 const SHEET_SCALE = 0.6;
 const sheetRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
 const sheetMat = new THREE.ShaderMaterial({
-  uniforms: { tSheet: { value: sheetRT.texture } },
+  uniforms: { tSheet: { value: sheetRT.texture }, uGain: { value: 1 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = position.xy*0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
-  fragmentShader: `uniform sampler2D tSheet; varying vec2 vUv; void main(){ gl_FragColor = vec4(texture2D(tSheet, vUv).rgb, 1.0); }`,
+  fragmentShader: `uniform sampler2D tSheet; uniform float uGain; varying vec2 vUv; void main(){ gl_FragColor = vec4(texture2D(tSheet, vUv).rgb*uGain, 1.0); }`,
   transparent: true, depthWrite: false, depthTest: false,
 });
 applyBlend(sheetMat, false);
@@ -1182,6 +1182,8 @@ function renderFrame() {
   // The sheet's blend must match the path it takes: into its own buffer it always adds (the ink
   // inversion happens on composite); drawn straight to screen in light mode it must subtract like ink.
   applyBlend(meshes[0].material, !lowRes && theme === 'light');
+  // Light mode has no glow to build the trail up, so its ink is laid down stronger.
+  sheetMat.uniforms.uGain.value = theme === 'light' ? 2.6 : 1;
   if (lowRes) {
     renderer.getDrawingBufferSize(dbSize);
     sheetRT.setSize(Math.max(1, Math.round(dbSize.x * SHEET_SCALE)), Math.max(1, Math.round(dbSize.y * SHEET_SCALE)));
