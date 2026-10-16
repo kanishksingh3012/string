@@ -1063,7 +1063,7 @@ function applyBlend(m, ink) {
 }
 
 const GEO = [
-  gridGeometry(isSmall ? 280 : 440, isSmall ? 96 : 160, 1),
+  gridGeometry(isSmall ? 280 : 440, isSmall ? 120 : 240, 1),
   gridGeometry(2, 2, 1),
   gridGeometry(isSmall ? 240 : 380, isSmall ? 120 : 190, 1),
   gridGeometry(isSmall ? 44 : 76, isSmall ? 44 : 76, 49),
@@ -1128,6 +1128,43 @@ const tube = new THREE.Mesh(gridGeometry(isSmall ? 320 : 640, 10, 1), tubeMat);
 tube.frustumCulled = false;
 tube.renderOrder = 1;
 scene.add(tube);
+
+// The history sheet is soft, so it renders into its own buffer at reduced resolution and is
+// added back with one full-screen draw. The crisp tube still renders at full resolution.
+const SHEET_SCALE = 0.6;
+const sheetRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
+const sheetMat = new THREE.ShaderMaterial({
+  uniforms: { tSheet: { value: sheetRT.texture } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = position.xy*0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+  fragmentShader: `uniform sampler2D tSheet; varying vec2 vUv; void main(){ gl_FragColor = vec4(texture2D(tSheet, vUv).rgb, 1.0); }`,
+  transparent: true, depthWrite: false, depthTest: false,
+});
+applyBlend(sheetMat, false);
+const sheetQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), sheetMat);
+sheetQuad.frustumCulled = false;
+sheetQuad.renderOrder = -2;
+sheetQuad.visible = false;
+scene.add(sheetQuad);
+const dbSize = new THREE.Vector2();
+function renderFrame() {
+  const lowRes = S.scene === 0;
+  if (lowRes) {
+    renderer.getDrawingBufferSize(dbSize);
+    sheetRT.setSize(Math.max(1, Math.round(dbSize.x * SHEET_SCALE)), Math.max(1, Math.round(dbSize.y * SHEET_SCALE)));
+    const tubeVis = tube.visible;
+    tube.visible = false; sheetQuad.visible = false; meshes[0].visible = true;
+    scene.background = null;
+    renderer.setRenderTarget(sheetRT);
+    renderer.setClearColor(0x000000, 1);
+    renderer.clear();
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+    scene.background = bgColor;
+    meshes[0].visible = false; tube.visible = tubeVis; sheetQuad.visible = true;
+  } else sheetQuad.visible = false;
+  composer.render();
+  if (lowRes) meshes[0].visible = true;
+}
 
 const braneMats = [-1, 1].map(side => {
   const m = new THREE.ShaderMaterial({
@@ -1241,9 +1278,11 @@ function syncUniforms() {
 
 function setBlendAll() {
   const ink = theme === 'light';
-  meshes.forEach(m => applyBlend(m.material, ink));
+  // The closed-string sheet always adds into its own buffer; the ink inversion happens on composite.
+  meshes.forEach((m, i) => applyBlend(m.material, ink && i !== 0));
   braneMats.forEach(m => applyBlend(m, ink));
   applyBlend(tubeMat, ink);
+  applyBlend(sheetMat, ink);
 }
 
 /* ================================================================== adaptive resolution */
@@ -1737,7 +1776,7 @@ function doCapture() {
     U.uPxScale.value = scale;
     fxPass.uniforms.uFxScale.value = scale;
     syncUniforms();
-    composer.render();
+    renderFrame();
     const W = renderer.domElement.width, H = renderer.domElement.height;
     blobPromise = new Promise(res => renderer.domElement.toBlob(b => res({ b, W, H }), 'image/png'));
   } catch (e) {
@@ -1868,6 +1907,7 @@ let last = performance.now();
 let firstFrameMarked = false;
 function frame(now) {
   requestAnimationFrame(frame);
+  if (now - last < 15 && !wantCapture) return;   // ~60 fps cap, so 120 Hz screens don't double the GPU work
   const rawDt = now - last;
   last = now;
   const dt = Math.min(rawDt / 1000, 0.05);
@@ -1878,7 +1918,7 @@ function frame(now) {
   if (paused && !dirty && !wantCapture) return;
   dirty = false;
   syncUniforms();
-  composer.render();
+  renderFrame();
   if (!firstFrameMarked) {
     firstFrameMarked = true;
     performance.mark('string:first-frame');
