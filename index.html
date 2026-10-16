@@ -309,10 +309,11 @@ details.sec[open] > summary svg { transform: rotate(90deg); }
 
 .panel.closed { display: none; }
 /* Focus mode: only the canvas. A small button fades in when the pointer moves. */
-.zen-exit { display: none; position: fixed; right: var(--gut); bottom: calc(var(--gut) + env(safe-area-inset-bottom, 0px)); z-index: 6; border: 0; height: 40px; padding: 0 14px; font-weight: 600; color: var(--text); gap: 8px; align-items: center; opacity: 0; transition: opacity .3s; }
-:root.zen .scenes, :root.zen .panel, :root.zen .notes, :root.zen .hints, :root.zen .fab, :root.zen .paused-tag, :root.zen .toast { display: none !important; }
-:root.zen .zen-exit { display: inline-flex; }
-:root.zen.zen-awake .zen-exit { opacity: 1; }
+.zen-bar { display: none; position: fixed; right: var(--gut); bottom: calc(var(--gut) + env(safe-area-inset-bottom, 0px)); z-index: 6; gap: 8px; opacity: 0; transition: opacity .3s; }
+.zen-btn { border: 0; height: 40px; padding: 0 14px; font-weight: 600; color: var(--text); display: inline-flex; gap: 8px; align-items: center; }
+:root.zen .scenes, :root.zen .panel, :root.zen .notes, :root.zen .hints, :root.zen .fab, :root.zen .paused-tag { display: none !important; }
+:root.zen .zen-bar { display: flex; }
+:root.zen.zen-awake .zen-bar { opacity: 1; }
 :root.zen.zen-idle #gl { cursor: none; }
 
 @media (max-width: 1599px) { .hints { display: none; } }
@@ -397,7 +398,10 @@ details.sec[open] > summary svg { transform: rotate(90deg); }
 </footer>
 
 <button class="fab" id="fab" type="button" hidden>Controls</button>
-<button class="zen-exit slab" id="zenExit" type="button">Show controls <span class="k">F</span></button>
+<div class="zen-bar" id="zenBar">
+  <button class="zen-btn slab" id="zenExport" type="button">Export <span class="k">E</span></button>
+  <button class="zen-btn slab" id="zenExit" type="button">Show controls <span class="k">F</span></button>
+</div>
 
 <div class="modal" id="modal" hidden>
   <div class="mcard slab" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -1912,6 +1916,7 @@ function setZen(on) {
 }
 $('#zenBtn').addEventListener('click', () => setZen(true));
 $('#zenExit').addEventListener('click', () => setZen(false));
+$('#zenExport').addEventListener('click', exportImage);
 addEventListener('pointermove', wakeZen, { passive: true });
 
 const notes = $('#notes');
