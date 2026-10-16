@@ -31,6 +31,7 @@
 | X | Reset view |
 | T | Toggle theme |
 | M | Toggle sound |
+| F | Focus mode: hide all controls (Esc to exit) |
 | H | Show / hide panel |
 
 ## Run locally
