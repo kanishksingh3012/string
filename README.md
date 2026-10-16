@@ -1,0 +1,50 @@
+# string
+
+**Worldsheet** is an interactive string theory instrument. It renders the shapes of string theory with WebGL shaders and lets you play with them like a synth.
+
+## Scenes
+
+1. **Closed string**: a vibrating loop built from left- and right-moving waves. Raise *Time spread* to lay its history out as a worldsheet.
+2. **Open strings**: strings whose endpoints slide along two D-branes (Neumann) and stay pinned across them (Dirichlet).
+3. **Interactions**: the pants diagram (one string splitting into two, or two joining) and the one-loop torus.
+4. **Calabi–Yau**: Hanson's projection of z₁ⁿ + z₂ⁿ = 1, rotating through its hidden fourth dimension.
+
+## Features
+
+- Harmonics equalizer: drag the 8 bars to set each vibration mode. Each bar plays its overtone as a plucked string.
+- Surface styles: Silk, Film (iridescent), Grid (worldsheet coordinates) and Plasma.
+- Palettes, bloom, aberration, grain, vignette, pixelation and dithering.
+- Light and dark mode, with synthesized interface sounds (mute with **M**).
+- Adaptive resolution that keeps the frame rate smooth on slower machines.
+- PNG export, 6-second video recording, saved presets and settings as JSON.
+
+## Shortcuts
+
+| Key | Action |
+| --- | --- |
+| ← → | Previous / next preset |
+| 1–4 | Switch scene |
+| R | Randomize |
+| P | Pause |
+| E | Export image |
+| V | Record 6 seconds |
+| X | Reset view |
+| T | Toggle theme |
+| M | Toggle sound |
+| H | Show / hide panel |
+
+## Run locally
+
+It is a single static page with no build step. Serve the folder with any static server:
+
+```bash
+python3 -m http.server 5199
+```
+
+Then open http://localhost:5199.
+
+## Deploy
+
+Import the repository in Vercel and choose the **Other** framework preset. There is no build command, and the output directory is the repository root.
+
+Built with [three.js](https://threejs.org), loaded from the jsDelivr CDN.
