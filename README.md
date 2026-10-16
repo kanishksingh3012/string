@@ -47,4 +47,18 @@ Then open http://localhost:5199.
 
 Import the repository in Vercel and choose the **Other** framework preset. There is no build command, and the output directory is the repository root.
 
+After the first deploy, change the two `og:image` / `twitter:image` tags in `index.html` from `/og.jpg` to the full URL (for example `https://your-domain.vercel.app/og.jpg`). Slack, Discord and iMessage read the relative path, but X and LinkedIn need the full URL to show the preview card.
+
+## Brand files
+
+| File | Use |
+| --- | --- |
+| `favicon.svg`, `favicon.ico` | Browser tab icon |
+| `apple-touch-icon.png` | iOS home screen |
+| `site.webmanifest`, `icons/icon-*.png` | Install as an app (Android, desktop Chrome) |
+| `og.jpg` | 1200×630 link preview |
+| `icons/mark.svg` | The String mark without its background tile |
+
+The mark is a closed string vibrating in its fifth harmonic, drawn in the Planck palette.
+
 Built with [three.js](https://threejs.org), loaded from the jsDelivr CDN.
