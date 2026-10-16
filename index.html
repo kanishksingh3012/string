@@ -1175,6 +1175,9 @@ scene.add(sheetQuad);
 const dbSize = new THREE.Vector2();
 function renderFrame() {
   const lowRes = S.scene === 0 && S.spread < 0.5;
+  // The sheet's blend must match the path it takes: into its own buffer it always adds (the ink
+  // inversion happens on composite); drawn straight to screen in light mode it must subtract like ink.
+  applyBlend(meshes[0].material, !lowRes && theme === 'light');
   if (lowRes) {
     renderer.getDrawingBufferSize(dbSize);
     sheetRT.setSize(Math.max(1, Math.round(dbSize.x * SHEET_SCALE)), Math.max(1, Math.round(dbSize.y * SHEET_SCALE)));
