@@ -455,7 +455,7 @@ const PRESETS = [
 const SCENES = [
   { name: 'Closed string', cam: [0, 2.6, 8.6], root: 98 },
   { name: 'Open strings', cam: [4.2, 2.6, 8.4], root: 130.81 },
-  { name: 'Interactions', cam: [0, 1.4, 9.6], root: 110 },
+  { name: 'Interactions', cam: [0, 1.6, 12], root: 110 },
   { name: 'Calabi–Yau', cam: [0, 0.8, 7.2], root: 146.83 },
 ];
 
@@ -636,10 +636,11 @@ varying vec3 vV;
 varying float vA;
 varying float vInst;
 varying float vT;
+varying vec3 vPos;
 ${GLSL_COMMON}
 
 vec2 cmul(vec2 a, vec2 b){ return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
-vec2 cpow(vec2 w, float p){ float r = length(w); float a = atan(w.y, w.x); return pow(max(r, 1e-6), p)*vec2(cos(p*a), sin(p*a)); }
+vec2 cpow(vec2 w, float p){ float r = length(w); if(r < 1e-5) return vec2(0.0); float a = atan(w.y, w.x); return pow(r, p)*vec2(cos(p*a), sin(p*a)); }
 
 vec3 surf(vec2 uv){
   vec3 p = vec3(0.0);
@@ -699,7 +700,7 @@ vec3 surf(vec2 uv){
     vec2 circ = R0*vec2(cos(th), sin(th));
     vec2 fig = side*vec2(rho + rho*cos(2.0*th), rho*sin(2.0*th));
     vec2 q = mix(circ, fig, t1);
-    float sep = t2*R0*1.25 + t2*t2*R0*0.5;
+    float sep = t2*R0*1.05 + t2*t2*R0*0.3;
     vec2 ctr = vec2(side*(rho + sep), 0.0);
     q.x += side*sep;
     q = ctr + (q - ctr)*(1.0 - 0.18*t2);
@@ -713,9 +714,12 @@ vec3 surf(vec2 uv){
   }
 #else
   float n = uCYn;
-  float k1 = mod(aInst, n), k2 = floor(aInst/n);
+  float k2 = floor((aInst + 0.5)/n);
+  float k1 = aInst - k2*n;
   float x = uv.x*PI*0.5;
-  float y = (uv.y*2.0 - 1.0)*uCYr;
+  // Same outer radius for every degree: cosh(Y)^(2/n) matches the quintic's cosh(reach)^(2/5).
+  float Yn = acosh(pow(cosh(uCYr), n/5.0));
+  float y = (uv.y*2.0 - 1.0)*Yn;
   vec2 cu = vec2(cos(x)*cosh(y), -sin(x)*sinh(y));
   vec2 su = vec2(sin(x)*cosh(y),  cos(x)*sinh(y));
   float a1 = TAU*k1/n, a2 = TAU*k2/n;
@@ -730,18 +734,22 @@ vec3 surf(vec2 uv){
 void main(){
   vec2 st = uv;
   vec3 p = surf(st);
-  float e = 0.003;
-  vec3 dx = surf(st + vec2(e, 0.0)) - p;
-  vec3 dy = surf(st + vec2(0.0, e)) - p;
+  // Central differences clamped to the patch, so normals never sample across a branch cut.
+  float e = 0.004;
+  vec2 ax = vec2(max(st.x - e, 0.0), st.y), bx = vec2(min(st.x + e, 1.0), st.y);
+  vec2 ay = vec2(st.x, max(st.y - e, 0.0)), by = vec2(st.x, min(st.y + e, 1.0));
+  vec3 dx = (surf(bx) - surf(ax))/(bx.x - ax.x);
+  vec3 dy = (surf(by) - surf(ay))/(by.y - ay.y);
   vec3 Vw = cameraPosition - p;
   vec3 n = cross(dx, dy);
-  if(dot(n, n) < 1e-12){
+  if(dot(n, n) < 1e-8){
     vec3 T = normalize(dx + 1e-6);
     vec3 Vn = normalize(Vw);
     n = Vn - T*dot(Vn, T) + 1e-5;
   }
   vN = normalize(n);
   vV = Vw;
+  vPos = p;
   vUv = st;
   vInst = aInst;
   vT = 0.0;
@@ -773,6 +781,7 @@ varying vec3 vV;
 varying float vA;
 varying float vInst;
 varying float vT;
+varying vec3 vPos;
 ${GLSL_COMMON}
 vec3 film(float t){ return 0.5 + 0.5*cos(TAU*(t + vec3(0.0, 0.33, 0.67))); }
 
@@ -782,11 +791,17 @@ void main(){
   vec3 V = normalize(vV);
   float ndv = abs(dot(N, V));
   float fres = pow(1.0 - ndv, 1.5);
+#if SCENE == 3
+  vec2 tuv = vec2(vPos.x*0.21 + vPos.z*0.13 + 0.5, vPos.y*0.21 - vPos.z*0.08 + 0.5);
+  float so = 0.0;
+#else
+  vec2 tuv = vUv;
   float so = vInst*17.31;
+#endif
 
   vec3 col = mix(uC0, uC1, smoothstep(0.1, 1.0, fres));
-  float n1 = vnoise(vec2(vUv.x*4.0 + so, vUv.y*2.0 + uTimeF*0.08));
-  float n2 = vnoise(vec2(vUv.x*3.0 - 5.3 + so, vUv.y*3.0 - uTimeF*0.06));
+  float n1 = vnoise(vec2(tuv.x*4.0 + so, tuv.y*2.0 + uTimeF*0.08));
+  float n2 = vnoise(vec2(tuv.x*3.0 - 5.3 + so, tuv.y*3.0 - uTimeF*0.06));
   col = mix(col, uC2, smoothstep(0.5, 0.85, n1)*uAccent);
   col = mix(col, uC3, smoothstep(0.58, 0.9, n2)*uAccent);
   col = mix(col, uC4, smoothstep(0.55, 1.0, fres*n1*1.4)*uAccent);
@@ -794,12 +809,12 @@ void main(){
   float I = 0.16 + fres*uGlow;
   int st = int(uStyle + 0.5);
   if(st == 0){
-    float s = vnoise(vec2(vUv.x*uDensity + so, vUv.y*1.4 - uTimeF*0.12));
-    float s2 = vnoise(vec2(vUv.x*uDensity*2.7 + 31.0 + so, vUv.y*2.0));
+    float s = vnoise(vec2(tuv.x*uDensity + so, tuv.y*1.4 - uTimeF*0.12));
+    float s2 = vnoise(vec2(tuv.x*uDensity*2.7 + 31.0 + so, tuv.y*2.0));
     s = pow(s, 2.4)*1.6 + pow(s2, 4.0)*1.4;
     I *= mix(1.0, 0.2 + s, uStreaks);
   } else if(st == 1){
-    vec3 f = film(ndv*uIrid*1.7 + vUv.y*0.4 + vUv.x*0.25 + uTimeF*0.04);
+    vec3 f = film(ndv*uIrid*1.7 + tuv.y*0.4 + tuv.x*0.25 + uTimeF*0.04);
     col = mix(col, f*mix(vec3(1.0), col*1.7, 0.35), 0.72);
     I *= 0.7 + 0.7*fres;
   } else if(st == 2){
@@ -810,8 +825,8 @@ void main(){
     float line = max(l.x, l.y*0.8);
     I = I*0.22 + line*(0.55 + fres*1.2);
   } else {
-    float f = fbm(vUv*vec2(7.0, 3.5) + vec2(uTimeF*0.16, -uTimeF*0.11) + so);
-    float f2 = vnoise(vUv*vec2(6.0, 12.0) - vec2(uTimeF*0.14) + f*2.5);
+    float f = fbm(tuv*vec2(7.0, 3.5) + vec2(uTimeF*0.16, -uTimeF*0.11) + so);
+    float f2 = vnoise(tuv*vec2(6.0, 12.0) - vec2(uTimeF*0.14) + f*2.5);
     col = mix(uC0, mix(uC2, uC3, f2), smoothstep(0.25, 0.75, f));
     col = mix(col, uC1, pow(f2, 3.0)*1.6);
     I *= 0.45 + f*1.5;
@@ -906,10 +921,10 @@ controls.dampingFactor = 0.07;
 controls.minDistance = 2;
 controls.maxDistance = 30;
 
-const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false, samples: isSmall ? 0 : 4 });
 const composer = new EffectComposer(renderer, rt);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.55, 0.0);
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.55, 0.06);
 composer.addPass(bloom);
 const fxPass = new ShaderPass(FX);
 composer.addPass(fxPass);
@@ -957,7 +972,7 @@ const GEO = [
   gridGeometry(isSmall ? 220 : 300, isSmall ? 72 : 110, 1),
   gridGeometry(isSmall ? 80 : 110, isSmall ? 28 : 44, 24),
   gridGeometry(isSmall ? 180 : 260, isSmall ? 100 : 150, 1),
-  gridGeometry(isSmall ? 30 : 42, isSmall ? 30 : 42, 49),
+  gridGeometry(isSmall ? 36 : 60, isSmall ? 36 : 60, 49),
 ];
 const meshes = GEO.map((g, i) => {
   const m = new THREE.ShaderMaterial({
@@ -1028,7 +1043,7 @@ function syncUniforms() {
   U.uHead.value = S.head; U.uGridN.value = S.gridN;
   const norms = [0.3 + 0.75 * S.spread, 0.42, 0.95, 0.34];
   const inkBoost = [3.4, 2.2, 1.8, 1.6];
-  U.uNorm.value = norms[S.scene] * (ink ? inkBoost[S.scene] : 1);
+  U.uNorm.value = norms[S.scene] * (ink ? inkBoost[S.scene] : 1) * (S.scene === 3 ? 5 / S.cyN : 1);
 
   GEO[1].instanceCount = S.count;
   GEO[3].instanceCount = S.cyN * S.cyN;
@@ -1057,7 +1072,7 @@ function setBlendAll() {
 /* ================================================================== adaptive resolution */
 
 const DEVICE_DPR = devicePixelRatio || 1;
-let quality = 1;
+let quality = 1, qCeiling = 1, goodWindows = 0;
 const frameTimes = [];
 let lastAdjust = 0;
 function targetDPR() {
@@ -1074,7 +1089,6 @@ function applySize(force) {
   renderer.setSize(w, h, false);
   composer.setPixelRatio(pr);
   composer.setSize(w, h);
-  bloom.setSize(Math.round(w * pr * 0.5), Math.round(h * pr * 0.5));
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   fxPass.uniforms.uRes.value.set(w * pr, h * pr);
@@ -1087,9 +1101,14 @@ function adapt(dt, now) {
   const avg = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
   frameTimes.length = 0;
   $('#statFps').textContent = `${Math.round(1000 / avg)} fps`;
-  if (S.quality !== 'auto' || now - lastAdjust < 1000) return;
-  if (avg > 21 && quality > 0.5) { quality = Math.max(0.5, quality * 0.8); lastAdjust = now; applySize(); }
-  else if (avg < 17.6 && quality < 1) { quality = Math.min(1, quality * 1.1); lastAdjust = now; applySize(); }
+  if (S.quality !== 'auto' || recording) return;
+  if (avg > 22) {
+    goodWindows = 0;
+    if (quality > 0.5 && now - lastAdjust > 800) { qCeiling = Math.max(0.5, quality * 0.92); quality = Math.max(0.5, quality * 0.8); lastAdjust = now; applySize(); }
+  } else if (avg < 17.8) {
+    goodWindows++;
+    if (goodWindows >= 6 && quality < qCeiling - 0.01) { quality = Math.min(qCeiling, quality * 1.08); goodWindows = 0; lastAdjust = now; applySize(); }
+  } else goodWindows = 0;
 }
 
 /* ================================================================== UI */
@@ -1161,7 +1180,7 @@ function onChange(key) {
   dirty = true;
   if (key === 'seed') updatePhases();
   if (key === 'palette') S.colors = [...PALETTES[S.palette]];
-  if (key === 'quality') { quality = 1; applySize(true); }
+  if (key === 'quality') { quality = 1; qCeiling = 1; goodWindows = 0; applySize(true); }
   if (['style', 'topo', 'spread', 'palette', 'colors'].includes(key)) syncAll();
   if (key === 'topo') renderNotes();
   setAccent();
@@ -1309,6 +1328,7 @@ function resetView() {
   dirty = true;
 }
 function setScene(i, reset) {
+  if (S.scene !== i) { qCeiling = 1; goodWindows = 0; }
   S.scene = i;
   meshes.forEach((m, k) => { m.visible = k === i; });
   tabBtns.forEach((b, k) => b.setAttribute('aria-selected', String(k === i)));
