@@ -1,6 +1,6 @@
 # string
 
-**Worldsheet** is an interactive string theory instrument. It renders the shapes of string theory with WebGL shaders and lets you play with them like a synth.
+**String** is an interactive string theory instrument. It renders the shapes of string theory with WebGL shaders and lets you play with them like a synth.
 
 ## Scenes
 
