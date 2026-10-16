@@ -374,7 +374,7 @@ details.sec[open] > summary svg { transform: rotate(90deg); }
 
 <footer class="hints slab" aria-hidden="true">
   <span><span class="k">←</span><span class="k">→</span> Presets</span>
-  <span><span class="k">1–4</span> Scene</span>
+  <span><span class="k">1–3</span> Scene</span>
   <span><span class="k">Drag</span> Orbit</span>
   <span><span class="k">Scroll</span> Zoom</span>
   <span><span class="k">T</span> Theme</span>
@@ -436,8 +436,6 @@ const PRESETS = [
   { name: 'Worldsheet tube', scene: 0, palette: 'Cherenkov', amps: [.7, .35, .5, .1, 0, 0, 0, 0], spread: 1, trail: 3.2, fade: .55, height: 5, style: 2, opacity: .9, gridN: 36, autoRotate: .2 },
   { name: 'High harmonics', scene: 0, palette: 'Hawking', amps: [.25, 0, 0, .35, .8, .6, .35, .1], spread: .22, trail: 1.1, fade: 1.2, style: 3, tension: .55, radius: 1.8 },
   { name: 'Long exposure', scene: 0, palette: 'Positron', amps: [.6, .8, .3, .2, 0, .1, 0, 0], trail: 3, fade: .8, style: 1, opacity: .45, tension: .7 },
-  { name: 'D-brane pair', scene: 1, palette: 'CMB', amps: [.85, .4, .2, 0, 0, 0, 0, 0], count: 14 },
-  { name: 'Brane storm', scene: 1, palette: 'Tachyon', amps: [.3, .6, .4, .5, .2, .1, 0, 0], count: 24, gap: 5.2, style: 1, trail: .7, opacity: .75 },
   { name: 'Pants diagram', scene: 2, palette: 'Planck', topo: 0, amps: [.35, .15, 0, 0, 0, 0, 0, 0], style: 0, autoRotate: .25 },
   { name: 'Strings joining', scene: 2, palette: 'Cherenkov', topo: 0, flip: 1, style: 2, amps: [.2, 0, .2, 0, 0, 0, 0, 0], gridN: 32 },
   { name: 'One-loop torus', scene: 2, palette: 'Positron', topo: 1, style: 1, amps: [.3, .2, .1, 0, 0, 0, 0, 0] },
@@ -448,7 +446,7 @@ const PRESETS = [
 
 const SCENES = [
   { name: 'Closed string', cam: [0, 2.6, 8.6], root: 98 },
-  { name: 'Open strings', cam: [4.2, 2.6, 8.4], root: 130.81 },
+  { name: 'Open strings', cam: [4.2, 2.6, 8.4], root: 130.81, off: true },
   { name: 'Interactions', cam: [0, 1.6, 12], root: 110 },
   { name: 'Calabi–Yau', cam: [0, 0.8, 7.2], root: 146.83 },
 ];
@@ -467,19 +465,19 @@ const NOTES = {
     body: '<p>Open strings have two endpoints, and each must sit on a D-brane. Along the brane the ends slide freely (Neumann condition); across it they are pinned (Dirichlet).</p><p>The lowest massless open-string state behaves like a <b>photon</b> confined to the brane. Some strings here stretch between the two branes; others start and end on the same one.</p>',
   },
   2: {
-    eyebrow: 'Scene 3 · Interactions',
+    eyebrow: 'Scene 2 · Interactions',
     title: 'Splitting without a vertex',
     eq: 'S = −T ∫ dτ dσ √(−det ∂<sub>a</sub>X · ∂<sub>b</sub>X)',
     body: '<p>Strings interact by splitting and joining. The worldsheet stays one smooth surface, so there is no single point where the split happens. That smoothness is why string amplitudes avoid the infinities of point particles.</p><p>The <b>pants</b> surface is the simplest split, one string into two. Flip the direction to watch two strings join.</p>',
   },
   '2t': {
-    eyebrow: 'Scene 3 · Interactions',
+    eyebrow: 'Scene 2 · Interactions',
     title: 'The one-loop torus',
     eq: 'Z = ∫<sub>𝓕</sub> d<sup>2</sup>τ / τ<sub>2</sub><sup>2</sup> · Tr q<sup>L<sub>0</sub></sup> q̄<sup>L̄<sub>0</sub></sup>',
     body: '<p>A closed string that splits and rejoins sweeps out a <b>torus</b>. This is the one-loop vacuum diagram, the string version of a particle loop.</p><p>Every string loop diagram is a surface with handles. The number of handles counts the loops, and the string coupling g<sub>s</sub> weighs each one.</p>',
   },
   3: {
-    eyebrow: 'Scene 4 · Extra dimensions',
+    eyebrow: 'Scene 3 · Extra dimensions',
     title: 'A slice of Calabi–Yau',
     eq: 'z<sub>1</sub><sup>n</sup> + z<sub>2</sub><sup>n</sup> = 1,  (z<sub>1</sub>, z<sub>2</sub>) ∈ ℂ<sup>2</sup>',
     body: '<p>Superstring theory is consistent in ten spacetime dimensions. Six of them can be curled into a tiny Calabi–Yau space, and its shape decides which particles and forces appear in our four.</p><p>This is Hanson’s projection, the standard picture for the quintic (<b>n = 5</b>). The surface lives in four real dimensions; the angle α rotates its hidden directions into view. It is built from n² patches.</p>',
@@ -775,12 +773,12 @@ vec3 surf(vec2 uv){
 void main(){
   vec2 st = uv;
   vec3 p = surf(st);
-  // Central differences clamped to the patch, so normals never sample across a branch cut.
+  // One-sided differences that step into the patch: 3 surface evaluations instead of 5,
+  // and never across a patch edge or branch cut.
   float e = 0.004;
-  vec2 ax = vec2(max(st.x - e, 0.0), st.y), bx = vec2(min(st.x + e, 1.0), st.y);
-  vec2 ay = vec2(st.x, max(st.y - e, 0.0)), by = vec2(st.x, min(st.y + e, 1.0));
-  vec3 dx = (surf(bx) - surf(ax))/(bx.x - ax.x);
-  vec3 dy = (surf(by) - surf(ay))/(by.y - ay.y);
+  float ex = st.x + e <= 1.0 ? e : -e, ey = st.y + e <= 1.0 ? e : -e;
+  vec3 dx = (surf(st + vec2(ex, 0.0)) - p)/ex;
+  vec3 dy = (surf(st + vec2(0.0, ey)) - p)/ey;
   vec3 Vw = cameraPosition - p;
   vec3 n = cross(dx, dy);
   if(dot(n, n) < 1e-8){
@@ -909,11 +907,11 @@ void main(){
 const FX = {
   uniforms: {
     tDiffuse: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 },
-    uGrain: { value: 0 }, uAberr: { value: 0 }, uVig: { value: 0 }, uPixel: { value: 0 }, uDither: { value: 0 }, uLight: { value: 0 }, uFxScale: { value: 1 },
+    uGrain: { value: 0 }, uAberr: { value: 0 }, uVig: { value: 0 }, uPixel: { value: 0 }, uDither: { value: 0 }, uLight: { value: 0 }, uFxScale: { value: 1 }, uAA: { value: 1 },
   },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position, 1.0); }`,
   fragmentShader: /* glsl */`
-uniform sampler2D tDiffuse; uniform vec2 uRes; uniform float uTime, uGrain, uAberr, uVig, uPixel, uDither, uLight, uFxScale;
+uniform sampler2D tDiffuse; uniform vec2 uRes; uniform float uTime, uGrain, uAberr, uVig, uPixel, uDither, uLight, uFxScale, uAA;
 varying vec2 vUv;
 float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)))*43758.5453); }
 vec3 aces(vec3 x){ return clamp((x*(2.51*x + 0.03))/(x*(2.43*x + 0.59) + 0.14), 0.0, 1.0); }
@@ -936,6 +934,16 @@ void main(){
     c = texture2D(tDiffuse, uv).rgb;
   }
   c = clamp(c, vec3(0.0), vec3(64.0));
+  // Cheap edge smoothing: where local contrast is high, lean toward the neighbour average.
+  if(uAA > 0.5){
+    vec2 px = 1.0/uRes;
+    vec3 a1 = min(texture2D(tDiffuse, uv + vec2(px.x, 0.0)).rgb, 64.0), a2 = min(texture2D(tDiffuse, uv - vec2(px.x, 0.0)).rgb, 64.0);
+    vec3 a3 = min(texture2D(tDiffuse, uv + vec2(0.0, px.y)).rgb, 64.0), a4 = min(texture2D(tDiffuse, uv - vec2(0.0, px.y)).rgb, 64.0);
+    vec3 Lw = vec3(0.2126, 0.7152, 0.0722);
+    float l0 = dot(c/(1.0 + c), Lw), l1 = dot(a1/(1.0 + a1), Lw), l2 = dot(a2/(1.0 + a2), Lw), l3 = dot(a3/(1.0 + a3), Lw), l4 = dot(a4/(1.0 + a4), Lw);
+    float con = max(max(max(l1, l2), max(l3, l4)), l0) - min(min(min(l1, l2), min(l3, l4)), l0);
+    c = mix(c, max((a1 + a2 + a3 + a4)*0.25, 0.0), smoothstep(0.1, 0.4, con)*0.35);
+  }
   // Black point: the faint far tail of bloom is cut to true black, so empty space stays pure black.
   if(uLight < 0.5) c = max(c - 0.004, 0.0)*1.004;
   c = srgb(uLight > 0.5 ? c : aces(c*1.05));
@@ -1011,6 +1019,7 @@ function gridGeometry(Useg, Vseg, maxInst) {
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   g.setAttribute('aInst', new THREE.InstancedBufferAttribute(Float32Array.from({ length: maxInst }, (_, i) => i), 1));
   g.instanceCount = 1;
+  g.userData.U = Useg; g.userData.V = Vseg;
   return g;
 }
 
@@ -1022,10 +1031,10 @@ function applyBlend(m, ink) {
 }
 
 const GEO = [
-  gridGeometry(isSmall ? 220 : 300, isSmall ? 72 : 110, 1),
-  gridGeometry(isSmall ? 80 : 110, isSmall ? 28 : 44, 24),
-  gridGeometry(isSmall ? 180 : 260, isSmall ? 100 : 150, 1),
-  gridGeometry(isSmall ? 36 : 60, isSmall ? 36 : 60, 49),
+  gridGeometry(isSmall ? 280 : 440, isSmall ? 72 : 110, 1),
+  gridGeometry(2, 2, 1),
+  gridGeometry(isSmall ? 240 : 380, isSmall ? 120 : 190, 1),
+  gridGeometry(isSmall ? 44 : 76, isSmall ? 44 : 76, 49),
 ];
 const meshes = GEO.map((g, i) => {
   const m = new THREE.ShaderMaterial({
@@ -1079,7 +1088,7 @@ function warmScene(k) {
 }
 function precompileScenes() {
   const idle = window.requestIdleCallback || (f => setTimeout(f, 120));
-  const queue = [0, 1, 2, 3].filter(k => !warmed.has(warmKey(k)) && k !== S.scene);
+  const queue = VISIBLE.filter(k => !warmed.has(warmKey(k)) && k !== S.scene);
   warmed.add(warmKey(S.scene));
   const step = () => {
     const k = queue.shift();
@@ -1131,7 +1140,8 @@ function syncUniforms() {
   const inkBoost = [3.4, 2.2, 1.8, 1.6];
   U.uNorm.value = norms[S.scene] * (ink ? inkBoost[S.scene] : 1) * (S.scene === 3 ? 5 / S.cyN : 1);
 
-  GEO[1].instanceCount = S.count;
+  const keep = quality < 0.75 && S.quality !== 'sharp' ? 0.6 : 1;
+  GEO[0].setDrawRange(Math.floor((1 - keep) * GEO[0].userData.V) * GEO[0].userData.U * 6, Infinity);
   GEO[3].instanceCount = S.cyN * S.cyN;
   branes.forEach((b, i) => {
     b.visible = S.scene === 1 && S.showBranes;
@@ -1145,7 +1155,7 @@ function syncUniforms() {
 
   const fu = fxPass.uniforms;
   fu.uTime.value = timeF; fu.uGrain.value = S.grain; fu.uAberr.value = S.aberration;
-  fu.uVig.value = S.vignette; fu.uPixel.value = S.pixel * renderer.getPixelRatio(); fu.uDither.value = S.dither ? 1 : 0; fu.uLight.value = ink ? 1 : 0;
+  fu.uVig.value = S.vignette; fu.uPixel.value = S.pixel * renderer.getPixelRatio(); fu.uDither.value = S.dither ? 1 : 0; fu.uLight.value = ink ? 1 : 0; fu.uAA.value = S.pixel > 1 ? 0 : 1;
 }
 
 function setBlendAll() {
@@ -1161,11 +1171,13 @@ let quality = 1, qCeiling = 1, goodWindows = 0;
 // Each scene remembers the quality it settled on, so returning to it never re-adapts mid-animation.
 const sceneQuality = [null, null, null, null];
 const frameTimes = [];
-let lastAdjust = 0;
+let lastAdjust = performance.now() + 3000;   // ignore startup frames (compile and warm-up)
+// Quality ladder: full -> lighter bloom -> fewer faint trail layers -> lower resolution (never below 1x).
 function targetDPR() {
-  if (S.quality === 'sharp') return Math.min(DEVICE_DPR, 2);
-  if (S.quality === 'fast') return Math.min(DEVICE_DPR, 1.5) * 0.6;
-  return Math.min(DEVICE_DPR, 1.5) * quality;
+  const base = Math.min(DEVICE_DPR, 2);
+  if (S.quality === 'sharp') return base;
+  if (S.quality === 'fast') return Math.max(1, base * 0.65);
+  return Math.max(1, base * (quality >= 0.6 ? 1 : quality >= 0.52 ? 0.8 : 0.65));
 }
 let curW = 0, curH = 0, curPR = 0;
 function applySize(force) {
@@ -1180,6 +1192,7 @@ function applySize(force) {
   renderer.setSize(w, h, false);
   composer.setPixelRatio(pr);
   composer.setSize(w, h);
+  if (quality < 0.95 && S.quality !== 'sharp') bloom.setSize(Math.round(w * pr * 0.5), Math.round(h * pr * 0.5));
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   fxPass.uniforms.uRes.value.set(w * pr, h * pr);
@@ -1403,13 +1416,16 @@ function setAccent() {
 }
 
 /* scenes + notes */
-const tabBtns = SCENES.map((sc, i) => {
+const VISIBLE = SCENES.map((sc, i) => sc.off ? -1 : i).filter(i => i >= 0);
+const tabBtns = [];
+SCENES.forEach((sc, i) => {
+  if (sc.off) return;
   const b = document.createElement('button');
   b.type = 'button'; b.setAttribute('role', 'tab');
-  b.innerHTML = `${sc.name} <span class="k">${i + 1}</span>`;
+  b.innerHTML = `${sc.name} <span class="k">${VISIBLE.indexOf(i) + 1}</span>`;
   b.addEventListener('click', () => { if (S.scene !== i) { setScene(i, true); Sound.scene(SCENES[i].root, S.amps); } });
   $('#scenes').appendChild(b);
-  return b;
+  tabBtns[i] = b;
 });
 function renderNotes() {
   const n = NOTES[S.scene === 2 && S.topo === 1 ? '2t' : S.scene];
@@ -1484,6 +1500,7 @@ function buildPresetSelect() {
 }
 function applyState(obj) {
   colorsDirty = true;
+  if (SCENES[obj.scene]?.off) obj = { ...obj, scene: 0 };
   const keepQuality = S.quality;
   S = Object.assign(structuredClone(DEFAULTS), structuredClone(obj));
   S.quality = keepQuality;
@@ -1751,7 +1768,7 @@ addEventListener('keydown', e => {
   else if (k === 'x') resetView();
   else if (k === 't') toggleTheme();
   else if (k === 'm') toggleSound();
-  else if (['1', '2', '3', '4'].includes(k)) { const i = +k - 1; if (S.scene !== i) { setScene(i, true); Sound.scene(SCENES[i].root, S.amps); } }
+  else if (['1', '2', '3'].includes(k)) { const i = VISIBLE[+k - 1]; if (S.scene !== i) { setScene(i, true); Sound.scene(SCENES[i].root, S.amps); } }
   else return;
   e.preventDefault();
 });

@@ -5,9 +5,8 @@
 ## Scenes
 
 1. **Closed string**: a vibrating loop built from left- and right-moving waves. Raise *Time spread* to lay its history out as a worldsheet.
-2. **Open strings**: strings whose endpoints slide along two D-branes (Neumann) and stay pinned across them (Dirichlet).
-3. **Interactions**: the pants diagram (one string splitting into two, or two joining) and the one-loop torus.
-4. **Calabi–Yau**: Hanson's projection of z₁ⁿ + z₂ⁿ = 1, rotating through its hidden fourth dimension.
+2. **Interactions**: the pants diagram (one string splitting into two, or two joining) and the one-loop torus.
+3. **Calabi–Yau**: Hanson's projection of z₁ⁿ + z₂ⁿ = 1, rotating through its hidden fourth dimension.
 
 ## Features
 
@@ -24,7 +23,7 @@
 | Key | Action |
 | --- | --- |
 | ← → | Previous / next preset |
-| 1–4 | Switch scene |
+| 1–3 | Switch scene |
 | R | Randomize |
 | P | Pause |
 | E | Export image |
