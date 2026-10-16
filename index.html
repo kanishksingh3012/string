@@ -24,7 +24,8 @@
 <meta name="twitter:image" content="/og.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@1,6..72,400&display=swap">
+<link rel="modulepreload" href="/vendor/three.string.min.js">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@1,6..72,400&display=swap" media="print" onload="this.media='all'">
 <style>
 /* Layout: full-bleed canvas. One solid rounded control slab on the right, scene switcher top-left,
    field notes bottom-left, shortcut pill bottom-centre. Chunky filled rows instead of thin lines. */
@@ -173,13 +174,6 @@ button { cursor: pointer; }
 .cta .k { background: var(--inv-kbd); color: inherit; opacity: .75; }
 .cta .xdim { font: 500 12px/1 var(--f-mono); opacity: .6; font-variant-numeric: tabular-nums; }
 a.pill { text-decoration: none; }
-.eqi rect { transform-box: fill-box; transform-origin: center bottom; }
-:root[data-radio="playing"] #musicBtn[aria-pressed="true"] .eqi rect { animation: eqb 1.1s ease-in-out infinite alternate; }
-:root[data-radio="playing"] #musicBtn[aria-pressed="true"] .eqi rect:nth-child(2) { animation-delay: -.45s; animation-duration: .9s; }
-:root[data-radio="playing"] #musicBtn[aria-pressed="true"] .eqi rect:nth-child(3) { animation-delay: -.2s; animation-duration: 1.3s; }
-:root[data-radio="playing"] #musicBtn[aria-pressed="true"] .eqi rect:nth-child(4) { animation-delay: -.7s; }
-#musicBtn[aria-pressed="true"] { color: var(--text); }
-@keyframes eqb { from { transform: scaleY(.35); } to { transform: scaleY(1); } }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .rule { height: 1px; background: var(--line); margin: 6px 2px; border: 0; }
 
@@ -323,7 +317,7 @@ details.sec[open] > summary svg { transform: rotate(90deg); }
   .scenes button { padding: 9px 12px; }
   .notes { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } .eqi rect { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
 <canvas id="gl" aria-label="String theory visualization"></canvas>
@@ -334,10 +328,6 @@ details.sec[open] > summary svg { transform: rotate(90deg); }
 <aside class="panel slab" id="panel" aria-label="Controls">
   <header class="ph">
     <span class="logo"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="markG" x1="8" y1="10" x2="56" y2="54" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#b98cff"/><stop offset=".5" stop-color="#f06bb4"/><stop offset="1" stop-color="#7cf0d2"/></linearGradient></defs><rect x="10" y="11" width="6" height="42" rx="3" fill="#7f77dd"/><rect x="48" y="11" width="6" height="42" rx="3" fill="#7f77dd"/><path d="M16 32 C 19.5 39.5, 28.5 39.5, 32 32 S 44.5 24.5, 48 32" fill="none" stroke="#7f77dd" stroke-width="2" opacity=".6"/><path d="M16 32 C 19.5 21, 28.5 21, 32 32 S 44.5 43, 48 32" fill="none" stroke="url(#markG)" stroke-width="4.8" stroke-linecap="round"/><circle cx="16" cy="32" r="3.6" fill="url(#markG)"/><circle cx="48" cy="32" r="3.6" fill="url(#markG)"/></svg>String</span>
-    <button class="ib" id="musicBtn" aria-pressed="true" aria-label="String Radio">
-      <svg class="on eqi" viewBox="0 0 20 20" fill="currentColor"><rect x="3" y="6" width="2.4" height="10" rx="1.2"/><rect x="7.2" y="3.5" width="2.4" height="12.5" rx="1.2"/><rect x="11.4" y="7.5" width="2.4" height="8.5" rx="1.2"/><rect x="15.6" y="5" width="2.4" height="11" rx="1.2"/></svg>
-      <svg class="off" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4.2 14v-2M8.4 14V8M12.6 14v-3M16.8 14V9"/><path d="M3 3.5l14 13"/></svg>
-    </button>
     <button class="ib" id="soundBtn" aria-pressed="true" aria-label="Sound">
       <svg class="on" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8v4h3l4 3.5v-11L6 8H3z"/><path d="M13.5 7.2a4 4 0 010 5.6M15.8 5a7 7 0 010 10"/></svg>
       <svg class="off" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8v4h3l4 3.5v-11L6 8H3z"/><path d="M13.5 8l4 4M17.5 8l-4 4"/></svg>
@@ -388,7 +378,6 @@ details.sec[open] > summary svg { transform: rotate(90deg); }
   <span><span class="k">Drag</span> Orbit</span>
   <span><span class="k">Scroll</span> Zoom</span>
   <span><span class="k">T</span> Theme</span>
-  <span><span class="k">B</span> Radio</span>
   <span><span class="k">M</span> Sound</span>
   <span><span class="k">H</span> Panel</span>
 </footer>
@@ -411,31 +400,20 @@ details.sec[open] > summary svg { transform: rotate(90deg); }
 </div>
 <div class="toast slab" id="toast" role="status" hidden></div>
 
-<script type="importmap">
-{ "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-} }
-</script>
-
 <script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import * as THREE from '/vendor/three.string.min.js';
+const { OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, ShaderPass } = THREE;
 
 /* ================================================================== data */
 
 const PALETTES = {
-  'Planck':         ['#07060d', '#5a2fd6', '#f3ecff', '#b98cff', '#f06bb4', '#7cf0d2'],
-  'Cherenkov':      ['#03060c', '#0c49d4', '#dff4ff', '#38c4ff', '#6f5cff', '#b8fff1'],
-  'Hawking':        ['#0b0604', '#c2410c', '#fff0d8', '#fb8c3c', '#e8365a', '#ffe08a'],
-  'Bubble chamber': ['#0b0a08', '#7d6d55', '#f6eedb', '#c8b088', '#6c8f86', '#e9d2a3'],
-  'CMB':            ['#05040b', '#2340c8', '#fff0b8', '#e2452c', '#f3a21c', '#3fb4e6'],
-  'Positron':       ['#08040a', '#b0177a', '#ffe6f6', '#ff4fb8', '#5be7ff', '#ffd1ec'],
-  'Tachyon':        ['#030807', '#0f6e66', '#e8fff8', '#2fd3a0', '#9ad640', '#27c9e8'],
+  'Planck':         ['#000000', '#5a2fd6', '#f3ecff', '#b98cff', '#f06bb4', '#7cf0d2'],
+  'Cherenkov':      ['#000000', '#0c49d4', '#dff4ff', '#38c4ff', '#6f5cff', '#b8fff1'],
+  'Hawking':        ['#000000', '#c2410c', '#fff0d8', '#fb8c3c', '#e8365a', '#ffe08a'],
+  'Bubble chamber': ['#000000', '#7d6d55', '#f6eedb', '#c8b088', '#6c8f86', '#e9d2a3'],
+  'CMB':            ['#000000', '#2340c8', '#fff0b8', '#e2452c', '#f3a21c', '#3fb4e6'],
+  'Positron':       ['#000000', '#b0177a', '#ffe6f6', '#ff4fb8', '#5be7ff', '#ffd1ec'],
+  'Tachyon':        ['#000000', '#0f6e66', '#e8fff8', '#2fd3a0', '#9ad640', '#27c9e8'],
 };
 const SWATCH_NAMES = ['Void', 'Core', 'Edge', 'Accent 1', 'Accent 2', 'Accent 3'];
 const LIGHT_BG = '#f3f3f5';
@@ -509,28 +487,45 @@ const NOTES = {
 };
 
 /* ================================================================== audio */
-// One AudioContext shared by interface sounds and String Radio. Everything is synthesized.
+// One AudioContext for the interface sounds. Everything is synthesized.
 
 const AudioHub = (() => {
   let ctx = null;
   return {
+    // Opening the audio device is a blocking call, so it never runs inside a click or while the page
+    // is just animating. It runs once, right after the first interaction has painted (see below);
+    // later clicks only resume the open context, which is asynchronous.
+    warm() {
+      if (ctx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      try { ctx = new AC({ latencyHint: 'interactive' }); } catch { ctx = null; }
+    },
     get() {
-      if (!ctx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return null;
-        try { ctx = new AC(); } catch { return null; }
-      }
+      if (!ctx) return null;
       if (ctx.state === 'suspended') ctx.resume();
       return ctx;
     },
   };
 })();
+function openAudioAfterFirstInput() {
+  removeEventListener('pointerdown', openAudioAfterFirstInput, true);
+  removeEventListener('keydown', openAudioAfterFirstInput, true);
+  if (!Sound.on) return;
+  requestAnimationFrame(() => setTimeout(() => {
+    AudioHub.warm();
+    const idle = window.requestIdleCallback || (f => setTimeout(f, 100));
+    idle(() => Sound.prewarm());
+  }, 0));
+}
+addEventListener('pointerdown', openAudioAfterFirstInput, true);
+addEventListener('keydown', openAudioAfterFirstInput, true);
 function readPref(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v === '1'; } catch { return d; } }
 function writePref(k, v) { try { localStorage.setItem(k, v ? '1' : '0'); } catch {} }
 
 // Karplus–Strong plucked string, rendered once per pitch and cached.
 const ksCache = new Map();
-function ksBuffer(c, freq, bright = 0.5, seconds = 1.8) {
+function ksBuffer(c, freq, bright = 0.55, seconds = 1.3) {
   const key = Math.round(freq * 10) + ':' + bright + ':' + seconds;
   let buf = ksCache.get(key);
   if (buf) return buf;
@@ -545,7 +540,7 @@ function ksBuffer(c, freq, bright = 0.5, seconds = 1.8) {
   let m = 0; for (let i = 0; i < len; i++) m = Math.max(m, Math.abs(y[i]));
   const k = m > 0 ? 1 / m : 1;
   for (let i = 0; i < len; i++) y[i] *= k * Math.min(1, (len - i) / (sr * 0.2));
-  if (ksCache.size > 90) ksCache.clear();
+  if (ksCache.size > 120) ksCache.clear();
   ksCache.set(key, buf);
   return buf;
 }
@@ -596,10 +591,10 @@ const Sound = (() => {
     s.connect(f); f.connect(g); g.connect(out);
     s.start(t); s.stop(t + d + .03);
   }
-  function pluck(freq, peak = .2, delay = 0, bright = .5) {
+  function pluck(freq, peak = .2, delay = 0) {
     const c = ac(); if (!c) return;
     const t = c.currentTime + delay;
-    const s = c.createBufferSource(); s.buffer = ksBuffer(c, freq, bright);
+    const s = c.createBufferSource(); s.buffer = ksBuffer(c, freq);
     const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 4800;
     const g = c.createGain(); g.gain.value = peak;
     s.connect(f); f.connect(g); g.connect(out);
@@ -611,7 +606,9 @@ const Sound = (() => {
     set(v) {
       enabled = v;
       writePref('worldsheet.sound', v);
-      if (v) { tone(660, { peak: .05, d: .07 }); tone(990, { peak: .04, d: .09, delay: .06 }); }
+      if (v) {
+        if (!AudioHub.get()) { requestAnimationFrame(() => setTimeout(() => { AudioHub.warm(); this.prewarm(); }, 0)); return; }
+        this.prewarm(); tone(660, { peak: .05, d: .07 }); tone(990, { peak: .04, d: .09, delay: .06 }); }
     },
     tick(fr) {
       const now = performance.now();
@@ -625,133 +622,27 @@ const Sound = (() => {
     toggle(on) { tone(on ? 620 : 470, { peak: .05, d: .05 }); tone(on ? 930 : 350, { peak: .04, d: .08, delay: .05 }); },
     seg(i) { tone(392 * Math.pow(2, (i * 4) / 12), { type: 'triangle', peak: .05, d: .07 }); click(.03, 2600, 1.5, .015); },
     section(open) { tone(open ? 280 : 340, { peak: .045, d: .07, glide: open ? 1.5 : .66 }); },
-    harmonic(n, amp, root) { pluck(root * n, .07 + amp * .22, 0, .62); },
+    harmonic(n, amp, root) { pluck(root * n, .07 + amp * .22, 0); },
     scene(root, amps) {
-      pluck(root, .24, 0, .42);
-      amps.forEach((a, k) => { if (k && a > .2) pluck(root * (k + 1), a * .1, .025 * k, .6); });
+      pluck(root, .24, 0);
+      amps.forEach((a, k) => { if (k && a > .2) pluck(root * (k + 1), a * .1, .025 * k); });
     },
     chord(amps, root) {
       let d = 0;
-      amps.forEach((a, k) => { if (a > .12) { pluck(root * (k + 1), .06 + a * .15, d, .55); d += .05; } });
+      amps.forEach((a, k) => { if (a > .12) { pluck(root * (k + 1), .06 + a * .15, d); d += .05; } });
     },
     shutter() { click(.13, 1300, .7, .05); click(.08, 3800, 1, .03, .075); },
     rec() { tone(880, { peak: .05, d: .08 }); tone(880, { peak: .05, d: .08, delay: .14 }); },
-  };
-})();
-
-/* String Radio: a generative ambient station built from the harmonic series.
-   Pads are harmonics 1–6 of a slowly moving just-intonation root, weighted by the Harmonics bars;
-   sparse plucked strings and high bells run through a tape-style delay and a long reverb.
-   The key follows the current scene. */
-const Music = (() => {
-  let on = readPref('string.music', true);
-  let c = null, bus = null, padIn = null, pluckIn = null, timer = null;
-  let nextChord = 0, nextPluck = 0, nextBell = 0, step = 0, base = 49, root = 49;
-  const PROG = [1, 5 / 6, 2 / 3, 3 / 4];
-  const PLUCK_PARTIALS = [3, 4, 5, 6, 8, 9, 10, 12];
-
-  function impulse(seconds, decay) {
-    const sr = c.sampleRate, len = (sr * seconds) | 0, b = c.createBuffer(2, len, sr);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = b.getChannelData(ch);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
-    }
-    return b;
-  }
-  function build() {
-    bus = c.createGain(); bus.gain.value = 0; bus.connect(c.destination);
-    const verb = c.createConvolver(); verb.buffer = impulse(5.5, 2.8);
-    const wet = c.createGain(); wet.gain.value = 0.85; verb.connect(wet); wet.connect(bus);
-    const dry = c.createGain(); dry.gain.value = 0.5; dry.connect(bus);
-    const padLP = c.createBiquadFilter(); padLP.type = 'lowpass'; padLP.frequency.value = 900; padLP.Q.value = 0.5;
-    const lfo = c.createOscillator(); lfo.frequency.value = 0.04;
-    const lfoAmt = c.createGain(); lfoAmt.gain.value = 420;
-    lfo.connect(lfoAmt); lfoAmt.connect(padLP.frequency); lfo.start();
-    padIn = c.createGain(); padIn.gain.value = 0.55;
-    padIn.connect(padLP); padLP.connect(dry); padLP.connect(verb);
-    const delay = c.createDelay(2); delay.delayTime.value = 0.48;
-    const fb = c.createGain(); fb.gain.value = 0.4;
-    const tape = c.createBiquadFilter(); tape.type = 'lowpass'; tape.frequency.value = 2200;
-    delay.connect(tape); tape.connect(fb); fb.connect(delay); tape.connect(verb);
-    pluckIn = c.createGain(); pluckIn.gain.value = 0.5;
-    pluckIn.connect(dry); pluckIn.connect(delay); pluckIn.connect(verb);
-  }
-  function chord(t) {
-    root = base * PROG[step % PROG.length];
-    step++;
-    const attack = 5, hold = 9, release = 7;
-    for (let n = 1; n <= 6; n++) {
-      const w = 0.14 + (S.amps[n - 1] || 0) * 0.86;
-      const peak = 0.045 * w / Math.sqrt(n);
-      const g = c.createGain();
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(peak, t + attack);
-      g.gain.setValueAtTime(peak, t + attack + hold);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + attack + hold + release);
-      g.connect(padIn);
-      for (const [type, det] of [['triangle', -5], ['sine', 6]]) {
-        const o = c.createOscillator();
-        o.type = type; o.frequency.value = root * n; o.detune.value = det + Math.random() * 4 - 2;
-        o.connect(g); o.start(t); o.stop(t + attack + hold + release + 0.1);
-      }
-    }
-    return attack + hold;
-  }
-  function pluck(t) {
-    const n = PLUCK_PARTIALS[Math.floor(Math.random() * PLUCK_PARTIALS.length)];
-    const s = c.createBufferSource(); s.buffer = ksBuffer(c, root * n, 0.45, 2.4);
-    const g = c.createGain(); g.gain.value = 0.05 + Math.random() * 0.06;
-    const pan = c.createStereoPanner ? c.createStereoPanner() : null;
-    if (pan) { pan.pan.value = Math.random() * 1.2 - 0.6; s.connect(g); g.connect(pan); pan.connect(pluckIn); }
-    else { s.connect(g); g.connect(pluckIn); }
-    s.start(t);
-  }
-  function bell(t) {
-    const o = c.createOscillator(), g = c.createGain();
-    o.type = 'sine'; o.frequency.value = root * (Math.random() < 0.5 ? 12 : 16);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.018, t + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 4.5);
-    o.connect(g); g.connect(pluckIn); o.start(t); o.stop(t + 4.6);
-  }
-  function tick() {
-    const now = c.currentTime, ahead = now + 1.5;
-    while (nextChord < ahead) nextChord = Math.max(nextChord, now + 0.05) + chord(Math.max(nextChord, now + 0.05));
-    while (nextPluck < ahead) { pluck(Math.max(nextPluck, now + 0.02)); nextPluck = Math.max(nextPluck, now) + 1.1 + Math.random() * 2.6; }
-    while (nextBell < ahead) { bell(Math.max(nextBell, now + 0.02)); nextBell = Math.max(nextBell, now) + 7 + Math.random() * 9; }
-  }
-  function start() {
-    c = AudioHub.get();
-    if (!c) return;
-    if (!bus) build();
-    base = SCENES[S.scene].root / 2;
-    root = base * PROG[(step + PROG.length - 1) % PROG.length];
-    const now = c.currentTime;
-    bus.gain.cancelScheduledValues(now);
-    bus.gain.setValueAtTime(bus.gain.value, now);
-    bus.gain.linearRampToValueAtTime(0.9, now + 3);
-    if (!timer) {
-      nextChord = now; nextPluck = now + 2.5; nextBell = now + 6;
-      timer = setInterval(tick, 250);
-      tick();
-    }
-    document.documentElement.dataset.radio = 'playing';
-  }
-  function stop() {
-    document.documentElement.dataset.radio = 'off';
-    if (!c || !bus) return;
-    const now = c.currentTime;
-    bus.gain.cancelScheduledValues(now);
-    bus.gain.setValueAtTime(bus.gain.value, now);
-    bus.gain.linearRampToValueAtTime(0, now + 1.2);
-    clearInterval(timer); timer = null;
-  }
-  return {
-    get on() { return on; },
-    get playing() { return !!timer; },
-    set(v) { on = v; writePref('string.music', v); v ? start() : stop(); },
-    resume() { if (on && !timer) start(); },
-    retune() { base = SCENES[S.scene].root / 2; },
+    // Render every string pitch the UI can play (8 harmonics of 4 scene roots) in small idle slices.
+    prewarm() {
+      if (!enabled) return;
+      const c = AudioHub.get(); if (!c) return;
+      const todo = [];
+      for (const r of [98, 130.81, 110, 146.83]) for (let n = 1; n <= 8; n++) todo.push(r * n);
+      const idle = window.requestIdleCallback || (f => setTimeout(() => f({ timeRemaining: () => 8 }), 50));
+      const work = dl => { while (todo.length && dl.timeRemaining() > 3) ksBuffer(c, todo.shift()); if (todo.length) idle(work); };
+      idle(work);
+    },
   };
 })();
 
@@ -1045,10 +936,17 @@ void main(){
     c = texture2D(tDiffuse, uv).rgb;
   }
   c = clamp(c, vec3(0.0), vec3(64.0));
+  // Black point: the faint far tail of bloom is cut to true black, so empty space stays pure black.
+  if(uLight < 0.5) c = max(c - 0.004, 0.0)*1.004;
   c = srgb(uLight > 0.5 ? c : aces(c*1.05));
   float vig = smoothstep(0.8, 0.15, length(d)*1.15);
   c *= mix(1.0, mix(uLight > 0.5 ? 0.88 : 0.45, 1.0, vig), uVig);
-  c += (h(floor(gl_FragCoord.xy/uFxScale) + fract(uTime*7.13)*413.0) - 0.5)*uGrain*0.11;
+  // On dark, grain only lands where there is light, so the background never fills with noise.
+  float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  float gmask = uLight > 0.5 ? 1.0 : smoothstep(0.0, 0.08, lum);
+  c += (h(floor(gl_FragCoord.xy/uFxScale) + fract(uTime*7.13)*413.0) - 0.5)*uGrain*0.11*gmask;
+  // Half-step dither on lit pixels removes 8-bit banding rings in soft glow.
+  c += (h(gl_FragCoord.xy*1.37 + 17.0) - 0.5)/255.0*step(0.0005, lum);
   if(uDither > 0.5){
     vec2 bp = floor(gl_FragCoord.xy/max(uPixel, 2.0*uFxScale));
     c = floor(c*4.0 + bayer(bp))/4.0;
@@ -1064,6 +962,8 @@ const isSmall = matchMedia('(max-width: 720px)').matches;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance', stencil: false, depth: false });
 renderer.toneMapping = THREE.NoToneMapping;
+// Error checks force each shader to finish compiling on the main thread; only run them locally.
+renderer.debug.checkShaderErrors = location.hostname === 'localhost';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 200);
@@ -1074,10 +974,10 @@ controls.dampingFactor = 0.07;
 controls.minDistance = 2;
 controls.maxDistance = 30;
 
-const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false, samples: isSmall ? 0 : 4 });
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false, samples: 0 });
 const composer = new EffectComposer(renderer, rt);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.55, 0.06);
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.55, 0.12);
 composer.addPass(bloom);
 const fxPass = new ShaderPass(FX);
 composer.addPass(fxPass);
@@ -1157,10 +1057,38 @@ const branes = braneMats.map(m => {
   return b;
 });
 
-// Compile every scene's shader up front so switching scenes never stalls.
-meshes.forEach(m => { m.visible = true; });
-renderer.compile(scene, camera);
-meshes.forEach(m => { m.visible = false; });
+// After the first frame, each scene is drawn once into a tiny hidden target that matches the screen
+// buffer exactly (format, anti-aliasing, blend mode). That makes the GPU driver build its pipelines
+// ahead of time, one scene per idle slot, so the first switch to any scene is instant.
+const warmed = new Set();
+function warmKey(k) { return `${k}:${composer.renderTarget1.samples}:${theme}`; }
+function warmScene(k) {
+  const key = warmKey(k);
+  if (warmed.has(key)) return;
+  warmed.add(key);
+  const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, depthBuffer: false, samples: composer.renderTarget1.samples });
+  const vis = meshes.map(m => m.visible), bvis = branes.map(b => b.visible);
+  meshes.forEach((m, i) => { m.visible = i === k; });
+  branes.forEach(b => { b.visible = k === 1; });
+  renderer.setRenderTarget(rt);
+  renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
+  meshes.forEach((m, i) => { m.visible = vis[i]; });
+  branes.forEach((b, i) => { b.visible = bvis[i]; });
+  rt.dispose();
+}
+function precompileScenes() {
+  const idle = window.requestIdleCallback || (f => setTimeout(f, 120));
+  const queue = [0, 1, 2, 3].filter(k => !warmed.has(warmKey(k)) && k !== S.scene);
+  warmed.add(warmKey(S.scene));
+  const step = () => {
+    const k = queue.shift();
+    if (k === undefined) return;
+    warmScene(k);
+    idle(step, { timeout: 1500 });
+  };
+  idle(step, { timeout: 1500 });
+}
 
 /* ================================================================== state */
 
@@ -1180,6 +1108,7 @@ function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = 
 function updatePhases() { const r = mulberry32(S.seed * 9973 + 11); U.uPhase.value = Array.from({ length: 8 }, () => r() * Math.PI * 2); }
 
 const bgColor = new THREE.Color();
+let colorsDirty = true;
 scene.background = bgColor;
 function syncUniforms() {
   const ink = theme === 'light';
@@ -1189,8 +1118,12 @@ function syncUniforms() {
   U.uAmp.value = S.amps;
   U.uGap.value = S.gap; U.uBrane.value = S.brane; U.uFlip.value = S.flip; U.uTopo.value = S.topo;
   U.uCYn.value = S.cyN; U.uCYa.value = S.cyAlpha + cyA; U.uCYr.value = S.cyRange; U.uScale.value = S.scale;
-  U.uC0.value.set(S.colors[1]); U.uC1.value.set(S.colors[2]); U.uC2.value.set(S.colors[3]);
-  U.uC3.value.set(S.colors[4]); U.uC4.value.set(S.colors[5]);
+  if (colorsDirty) {
+    U.uC0.value.set(S.colors[1]); U.uC1.value.set(S.colors[2]); U.uC2.value.set(S.colors[3]);
+    U.uC3.value.set(S.colors[4]); U.uC4.value.set(S.colors[5]);
+    bgColor.set(ink ? LIGHT_BG : S.colors[0]);
+    colorsDirty = false;
+  }
   U.uStyle.value = S.style; U.uStreaks.value = S.streaks; U.uDensity.value = S.density; U.uGlow.value = S.glow;
   U.uIrid.value = S.irid; U.uAccent.value = S.accent; U.uOpacity.value = S.opacity; U.uInk.value = ink ? 1 : 0;
   U.uHead.value = S.head; U.uGridN.value = S.gridN;
@@ -1206,7 +1139,6 @@ function syncUniforms() {
     const s = S.brane * 2.3 * S.scale; b.scale.set(s, s, 1);
   });
 
-  bgColor.set(ink ? LIGHT_BG : S.colors[0]);
   bloom.strength = S.bloom;
   bloom.radius = S.bloomRadius;
   bloom.enabled = !ink && S.bloom > 0;
@@ -1226,6 +1158,8 @@ function setBlendAll() {
 
 const DEVICE_DPR = devicePixelRatio || 1;
 let quality = 1, qCeiling = 1, goodWindows = 0;
+// Each scene remembers the quality it settled on, so returning to it never re-adapts mid-animation.
+const sceneQuality = [null, null, null, null];
 const frameTimes = [];
 let lastAdjust = 0;
 function targetDPR() {
@@ -1238,6 +1172,10 @@ function applySize(force) {
   const w = innerWidth, h = innerHeight, pr = Math.max(0.5, targetDPR());
   if (!force && w === curW && h === curH && Math.abs(pr - curPR) < 0.01) return;
   curW = w; curH = h; curPR = pr;
+  // MSAA is expensive on half-float targets and buys little for additive glow at 1.5x resolution,
+  // so it is reserved for the Sharp setting.
+  const samples = !isSmall && S.quality === 'sharp' ? 4 : 0;
+  setMSAA(samples);
   renderer.setPixelRatio(pr);
   renderer.setSize(w, h, false);
   composer.setPixelRatio(pr);
@@ -1249,6 +1187,7 @@ function applySize(force) {
   dirty = true;
 }
 function adapt(dt, now) {
+  if (now < lastAdjust) return;
   frameTimes.push(dt);
   if (frameTimes.length < 40) return;
   const avg = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
@@ -1257,10 +1196,15 @@ function adapt(dt, now) {
   if (S.quality !== 'auto' || recording) return;
   if (avg > 22) {
     goodWindows = 0;
-    if (quality > 0.5 && now - lastAdjust > 800) { qCeiling = Math.max(0.5, quality * 0.92); quality = Math.max(0.5, quality * 0.8); lastAdjust = now; applySize(); }
+    if (quality > 0.5 && now - lastAdjust > 800) {
+      qCeiling = Math.max(0.5, quality * 0.92);
+      quality = Math.max(0.5, quality * 0.8);
+      lastAdjust = now;
+      applySize(true);
+    }
   } else if (avg < 17.8) {
     goodWindows++;
-    if (goodWindows >= 6 && quality < qCeiling - 0.01) { quality = Math.min(qCeiling, quality * 1.08); goodWindows = 0; lastAdjust = now; applySize(); }
+    if (goodWindows >= 6 && quality < qCeiling - 0.01) { quality = Math.min(qCeiling, quality * 1.08); goodWindows = 0; lastAdjust = now; applySize(true); }
   } else goodWindows = 0;
 }
 
@@ -1329,15 +1273,16 @@ const secEls = [];
 let uid = 0;
 const fmt = (v, step) => step >= 1 ? String(Math.round(v)) : Number(v).toFixed(2);
 
+const VIS_KEYS = new Set(['style', 'topo', 'spread']);
 function onChange(key) {
   dirty = true;
   if (key === 'seed') updatePhases();
   if (key === 'palette') S.colors = [...PALETTES[S.palette]];
-  if (key === 'quality') { quality = 1; qCeiling = 1; goodWindows = 0; applySize(true); }
-  if (['style', 'topo', 'spread', 'palette', 'colors'].includes(key)) syncAll();
+  if (key === 'quality') { quality = 1; qCeiling = 1; goodWindows = 0; sceneQuality.fill(null); applySize(true); }
+  if (key === 'palette' || key === 'colors') { colorsDirty = true; setAccent(); }
+  if (key === 'palette' || key === 'style' || key === 'topo' || key === 'spread') syncAll();
   if (key === 'topo') renderNotes();
-  setAccent();
-  refreshVisibility();
+  if (VIS_KEYS.has(key)) refreshVisibility();
 }
 
 function makeControl(c) {
@@ -1475,15 +1420,23 @@ function renderNotes() {
 }
 function resetView() {
   const c = SCENES[S.scene].cam;
-  camera.position.set(c[0], c[1], c[2]);
+  const back = S.scene === 0 ? 1 + 0.45 * S.spread * (S.height / 4.2) : 1;
+  camera.position.set(c[0] * back, c[1] * back, c[2] * back);
   controls.target.set(0, 0, 0);
   controls.update();
   dirty = true;
 }
 function setScene(i, reset) {
-  if (S.scene !== i) { qCeiling = 1; goodWindows = 0; }
+  if (S.scene !== i) {
+    sceneQuality[S.scene] = { quality, ceiling: qCeiling };
+    const next = sceneQuality[i] || { quality, ceiling: qCeiling };   // unvisited scenes inherit
+    const changed = Math.abs(next.quality - quality) > 0.001;
+    quality = next.quality; qCeiling = next.ceiling;
+    goodWindows = 0; frameTimes.length = 0;
+    lastAdjust = performance.now() + 1000;   // ignore the first second after a switch
+    if (changed && curW) applySize(true);    // resize together with the switch, not later
+  }
   S.scene = i;
-  Music.retune();
   meshes.forEach((m, k) => { m.visible = k === i; });
   tabBtns.forEach((b, k) => b.setAttribute('aria-selected', String(k === i)));
   renderNotes();
@@ -1497,11 +1450,13 @@ const SUN = '<circle cx="10" cy="10" r="3.4"/><path d="M10 2.5v1.8M10 15.7v1.8M2
 const MOON = '<path d="M16 12.2A6.5 6.5 0 017.8 4a6.5 6.5 0 108.2 8.2z" stroke-linejoin="round"/>';
 function onTheme() {
   theme = themeNow();
+  colorsDirty = true;
   $('#themeIcon').innerHTML = theme === 'dark' ? SUN : MOON;
   $('#themeBtn').setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
   setBlendAll();
   refreshVisibility();
   dirty = true;
+  if (firstFrameMarked) precompileScenes();
 }
 function toggleTheme() {
   root.setAttribute('data-theme', theme === 'dark' ? 'light' : 'dark');
@@ -1517,22 +1472,6 @@ function paintSound() { soundBtn.setAttribute('aria-pressed', String(Sound.on));
 function toggleSound() { Sound.set(!Sound.on); paintSound(); }
 soundBtn.addEventListener('click', toggleSound);
 
-const musicBtn = $('#musicBtn');
-function paintMusic() { musicBtn.setAttribute('aria-pressed', String(Music.on)); musicBtn.setAttribute('aria-label', Music.on ? 'Turn String Radio off' : 'Turn String Radio on'); }
-function toggleMusic() {
-  Music.set(!Music.on);
-  paintMusic();
-  toast(Music.on ? 'String Radio on' : 'String Radio off');
-}
-musicBtn.addEventListener('click', toggleMusic);
-// Browsers only allow audio after a user gesture, so the radio starts on the first interaction.
-function unlockAudio() {
-  removeEventListener('pointerdown', unlockAudio, true);
-  removeEventListener('keydown', unlockAudio, true);
-  Music.resume();
-}
-addEventListener('pointerdown', unlockAudio, true);
-addEventListener('keydown', unlockAudio, true);
 
 /* presets */
 const presetSel = $('#presetSel');
@@ -1544,6 +1483,7 @@ function buildPresetSelect() {
     (saved.length ? `<optgroup label="Saved in this browser">${saved.map((p, i) => `<option value="s${i}">${p.name}</option>`).join('')}</optgroup>` : '');
 }
 function applyState(obj) {
+  colorsDirty = true;
   const keepQuality = S.quality;
   S = Object.assign(structuredClone(DEFAULTS), structuredClone(obj));
   S.quality = keepQuality;
@@ -1577,6 +1517,7 @@ function randomize() {
   const names = Object.keys(PALETTES);
   S.palette = names[Math.floor(r() * names.length)];
   S.colors = [...PALETTES[S.palette]];
+  colorsDirty = true;
   const peak = Math.floor(r() * 5);
   S.amps = S.amps.map((_, i) => Math.round(Math.max(0, r() * 1.1 - Math.abs(i - peak) * 0.22) * 100) / 100);
   S.amps[peak] = Math.max(S.amps[peak], .5);
@@ -1703,7 +1644,6 @@ function doCapture() {
   } finally {
     U.uPxScale.value = 1;
     fxPass.uniforms.uFxScale.value = 1;
-    setMSAA(isSmall ? 0 : 4);
     applySize(true);
     dirty = true;
     // The export frame is slow on purpose; keep it out of the auto-resolution measurements.
@@ -1811,7 +1751,6 @@ addEventListener('keydown', e => {
   else if (k === 'x') resetView();
   else if (k === 't') toggleTheme();
   else if (k === 'm') toggleSound();
-  else if (k === 'b') toggleMusic();
   else if (['1', '2', '3', '4'].includes(k)) { const i = +k - 1; if (S.scene !== i) { setScene(i, true); Sound.scene(SCENES[i].root, S.amps); } }
   else return;
   e.preventDefault();
@@ -1825,6 +1764,7 @@ document.addEventListener('visibilitychange', () => { frameTimes.length = 0; las
 
 const motion = reduceMotion ? 0.35 : 1;
 let last = performance.now();
+let firstFrameMarked = false;
 function frame(now) {
   requestAnimationFrame(frame);
   const rawDt = now - last;
@@ -1838,12 +1778,17 @@ function frame(now) {
   dirty = false;
   syncUniforms();
   composer.render();
+  if (!firstFrameMarked) {
+    firstFrameMarked = true;
+    performance.mark('string:first-frame');
+    const idle = window.requestIdleCallback || (f => setTimeout(f, 200));
+    idle(() => precompileScenes());
+  }
   if (wantCapture) doCapture();
   if (rawDt > 0 && rawDt < 250) adapt(rawDt, now);
 }
 
 buildPanel();
-paintMusic();
 buildPresetSelect();
 paintSound();
 onTheme();

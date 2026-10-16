@@ -14,7 +14,6 @@
 - Harmonics equalizer: drag the 8 bars to set each vibration mode. Each bar plays its overtone as a plucked string.
 - Surface styles: Silk, Film (iridescent), Grid (worldsheet coordinates) and Plasma.
 - Palettes, bloom, aberration, grain, vignette, pixelation and dithering.
-- **String Radio**: a generative ambient soundtrack built from the harmonic series. Slow drones, plucked strings and bells, synthesized live in the browser. It follows the scene's key, and the Harmonics bars shape its tone. Toggle it with the bars icon or **B**.
 - Light and dark mode, with synthesized interface sounds (mute with **M**).
 - Adaptive resolution that keeps the frame rate smooth on slower machines.
 - PNG export in three sizes: **Screen**, **4K**, or **Max**, the largest your GPU can render safely (about 6000 px wide on a laptop). Bloom, grain and grid lines are scaled so the file matches what you see on screen.
@@ -32,7 +31,6 @@
 | V | Record 6 seconds |
 | X | Reset view |
 | T | Toggle theme |
-| B | Toggle String Radio |
 | M | Toggle sound |
 | H | Show / hide panel |
 
@@ -64,4 +62,4 @@ After the first deploy, change the two `og:image` / `twitter:image` tags in `ind
 
 The mark is an open string stretched between two D-branes, vibrating in its second harmonic, with its endpoints fixed on the branes. It is drawn in the Planck palette.
 
-Built with [three.js](https://threejs.org), loaded from the jsDelivr CDN.
+Built with [three.js](https://threejs.org) r160. The app loads a minified bundle of only the parts it uses from `vendor/three.string.min.js` (one same-origin file, about 125 KB gzipped). To rebuild it after changing `tools/three-entry.js`, run `tools/build-vendor.sh`.
