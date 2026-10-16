@@ -62,3 +62,7 @@ After the first deploy, change the two `og:image` / `twitter:image` tags in `ind
 The mark is an open string stretched between two D-branes, vibrating in its second harmonic, with its endpoints fixed on the branes. It is drawn in the Planck palette.
 
 Built with [three.js](https://threejs.org) r160. The app loads a minified bundle of only the parts it uses from `vendor/three.string.min.js` (one same-origin file, about 125 KB gzipped). To rebuild it after changing `tools/three-entry.js`, run `tools/build-vendor.sh`.
+
+---
+
+Made by [Kanishk Singh](https://www.linkedin.com/in/kanishk-singh-728126211/).
