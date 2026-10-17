@@ -16,7 +16,7 @@
 - Light and dark mode, with synthesized interface sounds (mute with **M**).
 - Adaptive resolution that keeps the frame rate smooth on slower machines.
 - PNG export in three sizes: **Screen**, **4K**, or **Max**, the largest your GPU can render safely (about 6000 px wide on a laptop). Bloom, grain and grid lines are scaled so the file matches what you see on screen.
-- 6-second video recording, saved presets and settings as JSON.
+- Video recording in 6, 8, 10 or 12-second clips, saved presets and settings as JSON.
 
 ## Shortcuts
 

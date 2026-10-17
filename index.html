@@ -361,6 +361,7 @@ details.sec[open] > summary svg { transform: rotate(90deg); }
     <div class="rule"></div>
     <button class="cta" id="exportBtn" type="button">Export <span class="xdim" id="exportDim"></span> <span class="k">E</span></button>
     <div class="seg" id="exportSize"><span class="lbl">Size</span><div class="segs" role="group" aria-label="Export size"><button type="button" data-v="screen">Screen</button><button type="button" data-v="4k">4K</button><button type="button" data-v="max">Max</button></div></div>
+    <div class="seg" id="recLen"><span class="lbl">Clip</span><div class="segs" role="group" aria-label="Clip length"><button type="button" data-v="6">6s</button><button type="button" data-v="8">8s</button><button type="button" data-v="10">10s</button><button type="button" data-v="12">12s</button></div></div>
     <div class="grid2">
       <button class="pill rec" id="recBtn" type="button">Record 6s <span class="k">V</span></button>
       <button class="pill" id="randBtn" type="button">Randomize <span class="k">R</span></button>
@@ -1846,6 +1847,19 @@ function doCapture() {
 }
 
 let recording = false;
+let recLen = (() => { try { return +localStorage.getItem('string.recLen') || 6; } catch { return 6; } })();
+if (![6, 8, 10, 12].includes(recLen)) recLen = 6;
+function paintRecLen() {
+  document.querySelectorAll('#recLen button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === recLen)));
+  if (!recording) $('#recBtn').firstChild.textContent = `Record ${recLen}s `;
+}
+document.querySelectorAll('#recLen button').forEach((b, i) => b.addEventListener('click', () => {
+  if (recording || recLen === +b.dataset.v) return;
+  recLen = +b.dataset.v;
+  try { localStorage.setItem('string.recLen', String(recLen)); } catch {}
+  Sound.seg(i);
+  paintRecLen();
+}));
 function record() {
   if (recording) return;
   if (!canvas.captureStream || typeof MediaRecorder === 'undefined') { toast('This browser cannot record the canvas.'); return; }
@@ -1859,19 +1873,20 @@ function record() {
   rec.ondataavailable = e => e.data.size && chunks.push(e.data);
   rec.onstop = () => {
     recording = false;
-    btn.firstChild.textContent = 'Record 6s ';
+    btn.firstChild.textContent = `Record ${recLen}s `;
     const blob = new Blob(chunks, { type: rec.mimeType || 'video/webm' });
     const v = document.createElement('video');
     v.src = URL.createObjectURL(blob); v.controls = true; v.loop = true; v.autoplay = true; v.muted = true; v.playsInline = true;
     const ext = (rec.mimeType || '').includes('mp4') ? 'mp4' : 'webm';
-    openModal('6-second clip', v, 'Download the clip, or right-click the video to save it.', null, null, { url: v.src, name: `string-clip.${ext}` });
+    openModal(`${len}-second clip`, v, 'Download the clip, or right-click the video to save it.', null, null, { url: v.src, name: `string-clip.${ext}` });
   };
   recording = true;
   Sound.rec();
   rec.start();
-  let left = 6;
+  const len = recLen;
+  let left = len;
   btn.firstChild.textContent = `Recording ${left}s `;
-  const iv = setInterval(() => { left--; btn.firstChild.textContent = `Recording ${left}s `; if (left <= 0) { clearInterval(iv); rec.stop(); } }, 1000);
+  const iv = setInterval(() => { left--; btn.firstChild.textContent = `Recording ${left}s `; if (left <= 0) { clearInterval(iv); setTimeout(() => rec.stop(), 550); }   // pad for the recorder's start-up }, 1000);
 }
 
 function showJSON() {
@@ -1986,6 +2001,7 @@ function frame(now) {
 }
 
 buildPanel();
+paintRecLen();
 buildPresetSelect();
 paintSound();
 onTheme();
