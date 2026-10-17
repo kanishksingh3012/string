@@ -426,7 +426,9 @@ details.sec[open] > summary svg { transform: rotate(90deg); }
 
 <script type="module">
 import * as THREE from '/vendor/three.string.min.js';
-const { OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, ShaderPass } = THREE;
+const { OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, SMAAPass } = THREE;
+// Edge quality: SMAA on the final image, MSAA on the trail layer, faded tube outline. ?noaa turns it off (for comparisons).
+const AA = !new URLSearchParams(location.search).has('noaa');
 
 /* ================================================================== data */
 
@@ -1060,6 +1062,8 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.55, 0.12);
 composer.addPass(bloom);
 const fxPass = new ShaderPass(FX);
 composer.addPass(fxPass);
+const smaa = AA ? new SMAAPass(1, 1) : null;
+if (smaa) composer.addPass(smaa);
 
 const U = {
   uTau: { value: 0 }, uTimeF: { value: 0 }, uTrail: { value: 1 }, uSpread: { value: 0 }, uRadius: { value: 1.6 },
@@ -1070,7 +1074,7 @@ const U = {
   uC0: { value: new THREE.Color() }, uC1: { value: new THREE.Color() }, uC2: { value: new THREE.Color() },
   uC3: { value: new THREE.Color() }, uC4: { value: new THREE.Color() },
   uStyle: { value: 0 }, uStreaks: { value: .6 }, uDensity: { value: 160 }, uGlow: { value: 1.2 }, uIrid: { value: 1 },
-  uAccent: { value: .6 }, uOpacity: { value: .6 }, uInk: { value: 0 }, uHead: { value: 1.4 }, uGridN: { value: 28 }, uNorm: { value: 1 }, uPxScale: { value: 1 }, uTubeR: { value: 0.022 },
+  uAccent: { value: .6 }, uOpacity: { value: .6 }, uInk: { value: 0 }, uHead: { value: 1.4 }, uGridN: { value: 28 }, uNorm: { value: 1 }, uPxScale: { value: 1 }, uTubeR: { value: 0.022 }, uEdge: { value: AA ? 0.35 : 0.0001 },
 };
 
 function gridGeometry(Useg, Vseg, maxInst) {
@@ -1146,7 +1150,7 @@ void main(){
 }`;
 const TUBE_FRAG = /* glsl */`
 uniform vec3 uC0, uC1, uC2;
-uniform float uHead, uOpacity, uInk, uTimeF, uAccent;
+uniform float uHead, uOpacity, uInk, uTimeF, uAccent, uEdge;
 varying vec3 vN;
 varying vec3 vV;
 varying float vS;
@@ -1157,7 +1161,7 @@ void main(){
   float shimmer = 0.8 + 0.2*sin(vS*18.8496 + uTimeF*1.3);
   vec3 col = mix(uC1, vec3(1.0), core*0.7);
   col = mix(col, uC2, (1.0 - core)*0.5*uAccent);
-  float I = uHead*(0.05 + 0.5*core)*shimmer*uOpacity;
+  float I = uHead*(0.05 + 0.5*core)*shimmer*uOpacity*smoothstep(0.0, uEdge, abs(dot(N, V)));
   vec3 o = uInk > 0.5 ? (1.0 - mix(uC0, uC1, 0.25))*I*0.9 : col*I;
   gl_FragColor = vec4(clamp(o, vec3(0.0), vec3(32.0)), 1.0);
 }`;
@@ -1350,10 +1354,12 @@ function syncUniforms() {
   bloom.strength = S.bloom;
   bloom.radius = S.bloomRadius;
   bloom.enabled = !ink && S.bloom > 0;
+    // Light mode (no glow to soften edges) gets SMAA; dark mode keeps its GPU headroom for full resolution.
+  if (smaa) smaa.enabled = S.quality === 'sharp' || (ink && quality >= 0.95);
 
   const fu = fxPass.uniforms;
   fu.uTime.value = timeF; fu.uGrain.value = S.grain; fu.uAberr.value = S.aberration;
-  fu.uVig.value = S.vignette; fu.uPixel.value = S.pixel * renderer.getPixelRatio(); fu.uDither.value = S.dither ? 1 : 0; fu.uLight.value = ink ? 1 : 0; fu.uAA.value = S.pixel > 1 ? 0 : 1;
+  fu.uVig.value = S.vignette; fu.uPixel.value = S.pixel * renderer.getPixelRatio(); fu.uDither.value = S.dither ? 1 : 0; fu.uLight.value = ink ? 1 : 0; fu.uAA.value = S.pixel > 1 || AA ? 0 : 1;   // SMAA replaces the crude edge smoothing
 }
 
 function setBlendAll() {
@@ -1410,7 +1416,7 @@ function adapt(dt, now) {
   if (S.quality !== 'auto' || recording) return;
   if (avg > 22) {
     goodWindows = 0;
-    if (quality > 0.5 && now - lastAdjust > 800) {
+    if (quality > 0.5 && now - lastAdjust > 2000) {
       qCeiling = Math.max(0.5, quality * 0.92);
       quality = Math.max(0.5, quality * 0.8);
       lastAdjust = now;

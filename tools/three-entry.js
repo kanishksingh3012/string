@@ -8,3 +8,4 @@ export { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 export { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 export { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 export { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+export { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';

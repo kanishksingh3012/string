@@ -4,3 +4,8 @@
 .vercel/
 node_modules/
 brand-explorations/
+
+# Local media (too large for GitHub)
+*.mp4
+*.mov
+*.webm
