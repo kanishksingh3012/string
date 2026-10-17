@@ -176,6 +176,11 @@ button { cursor: pointer; }
 .cta .k { background: var(--inv-kbd); color: inherit; opacity: .75; }
 .cta .xdim { font: 500 12px/1 var(--f-mono); opacity: .6; font-variant-numeric: tabular-nums; }
 a.pill { text-decoration: none; }
+.recwrap { display: flex; gap: 4px; min-width: 0; }
+.recwrap .pill { flex: 1; min-width: 0; padding: 0 10px; }
+.selwrap.mini { flex: 0 0 62px; }
+.selwrap.mini select { padding: 0 22px 0 10px; color: var(--rec); font-weight: 600; }
+.selwrap.mini::after { right: 10px; width: 6px; height: 6px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .rule { height: 1px; background: var(--line); margin: 6px 2px; border: 0; }
 
@@ -361,9 +366,8 @@ details.sec[open] > summary svg { transform: rotate(90deg); }
     <div class="rule"></div>
     <button class="cta" id="exportBtn" type="button">Export <span class="xdim" id="exportDim"></span> <span class="k">E</span></button>
     <div class="seg" id="exportSize"><span class="lbl">Size</span><div class="segs" role="group" aria-label="Export size"><button type="button" data-v="screen">Screen</button><button type="button" data-v="4k">4K</button><button type="button" data-v="max">Max</button></div></div>
-    <div class="seg" id="recLen"><span class="lbl">Clip</span><div class="segs" role="group" aria-label="Clip length"><button type="button" data-v="6">6s</button><button type="button" data-v="8">8s</button><button type="button" data-v="10">10s</button><button type="button" data-v="12">12s</button></div></div>
     <div class="grid2">
-      <button class="pill rec" id="recBtn" type="button">Record 6s <span class="k">V</span></button>
+      <div class="recwrap"><button class="pill rec" id="recBtn" type="button">Record <span class="k">V</span></button><div class="selwrap mini"><select id="recLenSel" aria-label="Clip length"><option value="6">6s</option><option value="8">8s</option><option value="10">10s</option><option value="12">12s</option></select></div></div>
       <button class="pill" id="randBtn" type="button">Randomize <span class="k">R</span></button>
       <button class="pill" id="pauseBtn" type="button" aria-pressed="false"><span>Pause</span> <span class="k">P</span></button>
       <button class="pill" id="resetBtn" type="button">Reset view <span class="k">X</span></button>
@@ -1332,7 +1336,7 @@ const frameTimes = [];
 let lastAdjust = performance.now() + 3000;   // ignore startup frames (compile and warm-up)
 // Quality ladder: full -> lighter bloom -> fewer faint trail layers -> lower resolution (never below 1x).
 function targetDPR() {
-  const base = Math.min(DEVICE_DPR, 2);
+  const base = Math.min(DEVICE_DPR, recording ? 1.5 : 2);
   if (S.quality === 'sharp') return base;
   if (S.quality === 'fast') return Math.max(1, base * 0.65);
   return Math.max(1, base * (quality >= 0.6 ? 1 : quality >= 0.52 ? 0.8 : 0.65));
@@ -1849,31 +1853,28 @@ function doCapture() {
 let recording = false;
 let recLen = (() => { try { return +localStorage.getItem('string.recLen') || 6; } catch { return 6; } })();
 if (![6, 8, 10, 12].includes(recLen)) recLen = 6;
-function paintRecLen() {
-  document.querySelectorAll('#recLen button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === recLen)));
-  if (!recording) $('#recBtn').firstChild.textContent = `Record ${recLen}s `;
-}
-document.querySelectorAll('#recLen button').forEach((b, i) => b.addEventListener('click', () => {
-  if (recording || recLen === +b.dataset.v) return;
-  recLen = +b.dataset.v;
+function paintRecLen() { $('#recLenSel').value = String(recLen); }
+$('#recLenSel').addEventListener('change', e => {
+  recLen = +e.target.value;
   try { localStorage.setItem('string.recLen', String(recLen)); } catch {}
-  Sound.seg(i);
-  paintRecLen();
-}));
+  Sound.press();
+});
 function record() {
   if (recording) return;
   if (!canvas.captureStream || typeof MediaRecorder === 'undefined') { toast('This browser cannot record the canvas.'); return; }
   const types = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
   const mime = types.find(t => MediaRecorder.isTypeSupported(t));
   let rec;
-  try { rec = new MediaRecorder(canvas.captureStream(60), mime ? { mimeType: mime, videoBitsPerSecond: 12e6 } : undefined); }
+  try { rec = new MediaRecorder(canvas.captureStream(30), mime ? { mimeType: mime, videoBitsPerSecond: 12e6 } : undefined); }
   catch { toast('Recording is not available here.'); return; }
   const chunks = [];
   const btn = $('#recBtn');
   rec.ondataavailable = e => e.data.size && chunks.push(e.data);
   rec.onstop = () => {
     recording = false;
-    btn.firstChild.textContent = `Record ${recLen}s `;
+    applySize(true);
+    btn.firstChild.textContent = 'Record ';
+    $('#recLenSel').disabled = false;
     const blob = new Blob(chunks, { type: rec.mimeType || 'video/webm' });
     const v = document.createElement('video');
     v.src = URL.createObjectURL(blob); v.controls = true; v.loop = true; v.autoplay = true; v.muted = true; v.playsInline = true;
@@ -1881,12 +1882,22 @@ function record() {
     openModal(`${len}-second clip`, v, 'Download the clip, or right-click the video to save it.', null, null, { url: v.src, name: `string-clip.${ext}` });
   };
   recording = true;
+  applySize(true);   // recording cap: at most 1.5x so the encoder never drops frames
   Sound.rec();
-  rec.start();
   const len = recLen;
-  let left = len;
-  btn.firstChild.textContent = `Recording ${left}s `;
-  const iv = setInterval(() => { left--; btn.firstChild.textContent = `Recording ${left}s `; if (left <= 0) { clearInterval(iv); setTimeout(() => rec.stop(), 550); } }, 1000);
+  $('#recLenSel').disabled = true;
+  btn.firstChild.textContent = `Recording ${len}s `;
+  // Length is measured in real time from when the recorder actually starts, so a busy
+  // machine (throttled timers, dropped frames) still produces a clip of the chosen length.
+  let t0 = 0;
+  rec.onstart = () => { t0 = performance.now(); };
+  rec.start();
+  const iv = setInterval(() => {
+    if (!t0) return;
+    const elapsed = (performance.now() - t0) / 1000;
+    btn.firstChild.textContent = `Recording ${Math.max(0, Math.ceil(len - elapsed))}s `;
+    if (elapsed >= len + 0.3) { clearInterval(iv); rec.stop(); }
+  }, 200);
 }
 
 function showJSON() {
