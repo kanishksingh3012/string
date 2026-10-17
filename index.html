@@ -1170,12 +1170,32 @@ scene.add(tube);
 const SHEET_SCALE = 0.6;
 const sheetRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
 const sheetMat = new THREE.ShaderMaterial({
-  uniforms: { tSheet: { value: sheetRT.texture }, uGain: { value: 1 } },
+  uniforms: { tSheet: { value: sheetRT.texture }, uGain: { value: 1 }, uInk: { value: 0 }, uTexel: { value: new THREE.Vector2(1, 1) } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = position.xy*0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
-  fragmentShader: `uniform sampler2D tSheet; uniform float uGain; varying vec2 vUv; void main(){ gl_FragColor = vec4(texture2D(tSheet, vUv).rgb*uGain, 1.0); }`,
+  // A small tent blur blends neighbouring time slices so no individual hairlines show.
+  // Light mode absorbs like ink (Beer-Lambert): dense areas deepen smoothly instead of clipping.
+  fragmentShader: `uniform sampler2D tSheet; uniform float uGain, uInk; uniform vec2 uTexel; varying vec2 vUv;
+  void main(){
+    vec2 d = uTexel;
+    vec3 c = texture2D(tSheet, vUv).rgb*4.0;
+    c += (texture2D(tSheet, vUv + vec2(d.x, 0.0)).rgb + texture2D(tSheet, vUv - vec2(d.x, 0.0)).rgb
+        + texture2D(tSheet, vUv + vec2(0.0, d.y)).rgb + texture2D(tSheet, vUv - vec2(0.0, d.y)).rgb)*2.0;
+    c += texture2D(tSheet, vUv + d).rgb + texture2D(tSheet, vUv - d).rgb
+       + texture2D(tSheet, vUv + vec2(d.x, -d.y)).rgb + texture2D(tSheet, vUv + vec2(-d.x, d.y)).rgb;
+    c = max(c/16.0, 0.0)*uGain;
+    gl_FragColor = vec4(uInk > 0.5 ? exp(-c) : c, 1.0);
+  }`,
   transparent: true, depthWrite: false, depthTest: false,
 });
-applyBlend(sheetMat, false);
+// Dark: add the layer. Light: multiply the background by the layer's transmittance (ink).
+function setSheetBlend(ink) {
+  if (!ink) { applyBlend(sheetMat, false); return; }
+  sheetMat.blending = THREE.CustomBlending;
+  sheetMat.blendEquation = THREE.AddEquation;
+  sheetMat.blendSrc = 200;   // ZeroFactor
+  sheetMat.blendDst = 202;   // SrcColorFactor -> result = background * transmittance
+}
+setSheetBlend(false);
 const sheetQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), sheetMat);
 sheetQuad.frustumCulled = false;
 sheetQuad.renderOrder = -2;
@@ -1183,15 +1203,20 @@ sheetQuad.visible = false;
 scene.add(sheetQuad);
 const dbSize = new THREE.Vector2();
 function renderFrame() {
-  const lowRes = S.scene === 0 && S.spread < 0.5;
-  // The sheet's blend must match the path it takes: into its own buffer it always adds (the ink
-  // inversion happens on composite); drawn straight to screen in light mode it must subtract like ink.
-  applyBlend(meshes[0].material, !lowRes && theme === 'light');
+  // The closed-string sheet goes through its own layer in long exposure (cheaper) and always in light
+  // mode (ink absorption). At high Time spread the layer is full resolution so the tube stays sharp.
+  const lowRes = S.scene === 0 && (S.spread < 0.5 || theme === 'light');
+  const scale = S.spread < 0.5 ? SHEET_SCALE : 1;
+  applyBlend(meshes[0].material, false);   // into the layer it always adds; ink happens on composite
   // Light mode has no glow to build the trail up, so its ink is laid down stronger.
-  sheetMat.uniforms.uGain.value = theme === 'light' ? 2.6 : 1;
+  sheetMat.uniforms.uGain.value = theme === 'light' ? 2.2 : 1;
+  sheetMat.uniforms.uInk.value = theme === 'light' ? 1 : 0;
   if (lowRes) {
     renderer.getDrawingBufferSize(dbSize);
-    sheetRT.setSize(Math.max(1, Math.round(dbSize.x * SHEET_SCALE)), Math.max(1, Math.round(dbSize.y * SHEET_SCALE)));
+    const sw = Math.max(1, Math.round(dbSize.x * scale)), sh = Math.max(1, Math.round(dbSize.y * scale));
+    sheetRT.setSize(sw, sh);
+    const spread = S.spread < 0.5 ? 1 : 0.6;   // gentler blur on the full-res tube view
+    sheetMat.uniforms.uTexel.value.set(spread / sw, spread / sh);
     const tubeVis = tube.visible;
     tube.visible = false; sheetQuad.visible = false; meshes[0].visible = true;
     scene.background = null;
@@ -1323,7 +1348,7 @@ function setBlendAll() {
   meshes.forEach((m, i) => applyBlend(m.material, ink && i !== 0));
   braneMats.forEach(m => applyBlend(m, ink));
   applyBlend(tubeMat, ink);
-  applyBlend(sheetMat, ink);
+  setSheetBlend(ink);
 }
 
 /* ================================================================== adaptive resolution */
