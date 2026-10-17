@@ -1218,7 +1218,8 @@ function renderFrame() {
   // mode (ink absorption). At high Time spread the layer is full resolution so the tube stays sharp.
   const lowRes = S.scene === 0;   // the closed-string sheet always goes through its own smoothed layer
   const ink = theme === 'light';
-  const scale = S.spread < 0.5 && !ink ? SHEET_SCALE : 1;   // light mode has no bloom to pay for: full resolution
+  // Full resolution by default; the reduced layer is only a step on the auto-quality ladder for slow devices.
+  const scale = quality < 0.95 && S.quality !== 'sharp' ? SHEET_SCALE : 1;
   applyBlend(meshes[0].material, false);   // into the layer it always adds; ink happens on composite
   // Light mode has no glow to build the trail up, so its ink is laid down stronger.
   sheetMat.uniforms.uGain.value = ink ? 3.4 : 1;
@@ -1228,7 +1229,7 @@ function renderFrame() {
     const sw = Math.max(1, Math.round(dbSize.x * scale)), sh = Math.max(1, Math.round(dbSize.y * scale));
     sheetRT.setSize(sw, sh);
     // Blur only as much as needed to merge time slices: none for Grid (crisp lines), light at full res.
-    const spread = S.style === 2 ? 0 : scale < 1 ? 1 : 0.6;
+    const spread = S.style === 2 ? 0 : scale < 1 ? 1 : 0.5;
     sheetMat.uniforms.uTexel.value.set(spread / sw, spread / sh);
     const tubeVis = tube.visible;
     tube.visible = false; sheetQuad.visible = false; meshes[0].visible = true;
@@ -1332,7 +1333,7 @@ function syncUniforms() {
   U.uStyle.value = S.style; U.uStreaks.value = S.streaks; U.uDensity.value = S.density; U.uGlow.value = S.glow;
   U.uIrid.value = S.irid; U.uAccent.value = S.accent; U.uOpacity.value = S.opacity; U.uInk.value = ink ? 1 : 0;
   U.uHead.value = S.head; U.uGridN.value = S.gridN;
-  const norms = [0.46 * (110 / GEO[0].userData.V) * (1 - S.spread) + 1.05 * S.spread, 0.42, 0.95, 0.34];
+  const norms = [0.46 * (110 / GEO[0].userData.V) * (1 - S.spread) + 1.05 * S.spread, 0.42, S.topo === 1 ? 0.4 : 0.95, 0.34];   // the torus overlaps itself front and back
   const inkBoost = [3.4, 2.2, 1.8, 1.6];
   U.uNorm.value = norms[S.scene] * (ink ? inkBoost[S.scene] : S.scene === 0 ? 1.6 + 0.8 * (1 - S.spread) : 1) * (S.scene === 3 ? 5 / S.cyN : 1);   // dark: brighter closed-string trail, most at low spread
 
