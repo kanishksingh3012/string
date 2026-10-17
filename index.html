@@ -1183,7 +1183,12 @@ const sheetMat = new THREE.ShaderMaterial({
     c += texture2D(tSheet, vUv + d).rgb + texture2D(tSheet, vUv - d).rgb
        + texture2D(tSheet, vUv + vec2(d.x, -d.y)).rgb + texture2D(tSheet, vUv + vec2(-d.x, d.y)).rgb;
     c = max(c/16.0, 0.0)*uGain;
-    gl_FragColor = vec4(uInk > 0.5 ? exp(-c) : c, 1.0);
+    if(uInk > 0.5){
+      // A touch of extra saturation in the ink keeps colours vivid as they deepen.
+      float g = dot(c, vec3(0.2126, 0.7152, 0.0722));
+      c = max(mix(vec3(g), c, 1.3), 0.0);
+      gl_FragColor = vec4(exp(-c), 1.0);
+    } else gl_FragColor = vec4(c, 1.0);
   }`,
   transparent: true, depthWrite: false, depthTest: false,
 });
@@ -1206,16 +1211,18 @@ function renderFrame() {
   // The closed-string sheet goes through its own layer in long exposure (cheaper) and always in light
   // mode (ink absorption). At high Time spread the layer is full resolution so the tube stays sharp.
   const lowRes = S.scene === 0 && (S.spread < 0.5 || theme === 'light');
-  const scale = S.spread < 0.5 ? SHEET_SCALE : 1;
+  const ink = theme === 'light';
+  const scale = S.spread < 0.5 && !ink ? SHEET_SCALE : 1;   // light mode has no bloom to pay for: full resolution
   applyBlend(meshes[0].material, false);   // into the layer it always adds; ink happens on composite
   // Light mode has no glow to build the trail up, so its ink is laid down stronger.
-  sheetMat.uniforms.uGain.value = theme === 'light' ? 2.2 : 1;
+  sheetMat.uniforms.uGain.value = ink ? 3.4 : 1;
   sheetMat.uniforms.uInk.value = theme === 'light' ? 1 : 0;
   if (lowRes) {
     renderer.getDrawingBufferSize(dbSize);
     const sw = Math.max(1, Math.round(dbSize.x * scale)), sh = Math.max(1, Math.round(dbSize.y * scale));
     sheetRT.setSize(sw, sh);
-    const spread = S.spread < 0.5 ? 1 : 0.6;   // gentler blur on the full-res tube view
+    // Blur only as much as needed to merge time slices: none for Grid (crisp lines), light at full res.
+    const spread = S.style === 2 ? 0 : scale < 1 ? 1 : 0.5;
     sheetMat.uniforms.uTexel.value.set(spread / sw, spread / sh);
     const tubeVis = tube.visible;
     tube.visible = false; sheetQuad.visible = false; meshes[0].visible = true;
