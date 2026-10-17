@@ -1886,7 +1886,7 @@ function record() {
   const len = recLen;
   let left = len;
   btn.firstChild.textContent = `Recording ${left}s `;
-  const iv = setInterval(() => { left--; btn.firstChild.textContent = `Recording ${left}s `; if (left <= 0) { clearInterval(iv); setTimeout(() => rec.stop(), 550); }   // pad for the recorder's start-up }, 1000);
+  const iv = setInterval(() => { left--; btn.firstChild.textContent = `Recording ${left}s `; if (left <= 0) { clearInterval(iv); setTimeout(() => rec.stop(), 550); } }, 1000);
 }
 
 function showJSON() {
