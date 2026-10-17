@@ -1074,7 +1074,7 @@ const U = {
   uC0: { value: new THREE.Color() }, uC1: { value: new THREE.Color() }, uC2: { value: new THREE.Color() },
   uC3: { value: new THREE.Color() }, uC4: { value: new THREE.Color() },
   uStyle: { value: 0 }, uStreaks: { value: .6 }, uDensity: { value: 160 }, uGlow: { value: 1.2 }, uIrid: { value: 1 },
-  uAccent: { value: .6 }, uOpacity: { value: .6 }, uInk: { value: 0 }, uHead: { value: 1.4 }, uGridN: { value: 28 }, uNorm: { value: 1 }, uPxScale: { value: 1 }, uTubeR: { value: 0.022 }, uEdge: { value: AA ? 0.35 : 0.0001 },
+  uAccent: { value: .6 }, uOpacity: { value: .6 }, uInk: { value: 0 }, uHead: { value: 1.4 }, uGridN: { value: 28 }, uNorm: { value: 1 }, uPxScale: { value: 1 }, uTubeR: { value: 0.022 }, uEdge: { value: AA ? 0.12 : 0.0001 },
 };
 
 function gridGeometry(Useg, Vseg, maxInst) {
@@ -1233,7 +1233,7 @@ function renderFrame() {
     const sw = Math.max(1, Math.round(dbSize.x * scale)), sh = Math.max(1, Math.round(dbSize.y * scale));
     sheetRT.setSize(sw, sh);
     // Blur only as much as needed to merge time slices: none for Grid (crisp lines), light at full res.
-    const spread = S.style === 2 ? 0 : scale < 1 ? 1 : 0.5;
+    const spread = S.style === 2 || ink ? 0 : scale < 1 ? 1 : 0.35;   // light mode stays perfectly sharp
     sheetMat.uniforms.uTexel.value.set(spread / sw, spread / sh);
     const tubeVis = tube.visible;
     tube.visible = false; sheetQuad.visible = false; meshes[0].visible = true;
@@ -1355,7 +1355,7 @@ function syncUniforms() {
   bloom.radius = S.bloomRadius;
   bloom.enabled = !ink && S.bloom > 0;
     // Light mode (no glow to soften edges) gets SMAA; dark mode keeps its GPU headroom for full resolution.
-  if (smaa) smaa.enabled = S.quality === 'sharp' || (ink && quality >= 0.95);
+  if (smaa) smaa.enabled = S.quality === 'sharp';
 
   const fu = fxPass.uniforms;
   fu.uTime.value = timeF; fu.uGrain.value = S.grain; fu.uAberr.value = S.aberration;
