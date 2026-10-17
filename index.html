@@ -1328,7 +1328,7 @@ function syncUniforms() {
   U.uHead.value = S.head; U.uGridN.value = S.gridN;
   const norms = [0.46 * (110 / GEO[0].userData.V) * (1 - S.spread) + 1.05 * S.spread, 0.42, 0.95, 0.34];
   const inkBoost = [3.4, 2.2, 1.8, 1.6];
-  U.uNorm.value = norms[S.scene] * (ink ? inkBoost[S.scene] : 1) * (S.scene === 3 ? 5 / S.cyN : 1);
+  U.uNorm.value = norms[S.scene] * (ink ? inkBoost[S.scene] : S.scene === 0 ? 1.4 + 0.7 * (1 - S.spread) : 1) * (S.scene === 3 ? 5 / S.cyN : 1);   // dark: brighter closed-string trail, most at low spread
 
   const keep = quality < 0.75 && S.quality !== 'sharp' ? 0.6 : 1;
   GEO[0].setDrawRange(Math.floor((1 - keep) * GEO[0].userData.V) * GEO[0].userData.U * 6, Infinity);
