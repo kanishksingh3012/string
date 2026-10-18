@@ -260,6 +260,7 @@ details.sec[open] > summary svg { transform: rotate(90deg); }
 
 /* Field notes */
 .notes {
+  box-sizing: border-box;
   position: fixed;
   left: var(--gut);
   bottom: calc(var(--gut) + env(safe-area-inset-bottom, 0px));
@@ -1400,8 +1401,10 @@ function applySize(force) {
   composer.setPixelRatio(pr);
   composer.setSize(w, h);
   if (quality < 0.95 && S.quality !== 'sharp') bloom.setSize(Math.round(w * pr * 0.5), Math.round(h * pr * 0.5));
+  const portraitFlip = (camera.aspect < 1) !== (w / h < 1);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  if (portraitFlip && firstFrameMarked) resetView();   // re-frame on rotation
   fxPass.uniforms.uRes.value.set(w * pr, h * pr);
   $('#statRes').textContent = `${Math.round(w * pr)}×${Math.round(h * pr)} · ${pr.toFixed(2)}×`;
   dirty = true;
@@ -1643,7 +1646,9 @@ function renderNotes() {
 }
 function resetView() {
   const c = SCENES[S.scene].cam;
-  const back = S.scene === 0 ? 1 + 0.45 * S.spread * (S.height / 4.2) : 1;
+  // Tall (portrait) screens pull the camera back so the whole shape fits the width.
+  const fit = Math.min(3.2, Math.max(1, [1.0, 1.45, 1.45, 1.25][S.scene] / camera.aspect));
+  const back = (S.scene === 0 ? 1 + 0.45 * S.spread * (S.height / 4.2) : 1) * fit;
   camera.position.set(c[0] * back, c[1] * back, c[2] * back);
   controls.target.set(0, 0, 0);
   controls.update();
